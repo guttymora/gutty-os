@@ -1,6 +1,7 @@
 // Smoke test for the packaged app (run after `electron-forge package`).
 // Launches the real executable from out/, with fuses and asar applied, and
 // checks over the Chrome DevTools Protocol that the UI actually rendered.
+// Always removes out/ when done, pass or fail.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,13 +11,19 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const { productName } = JSON.parse(
     readFileSync(path.join(ROOT, 'package.json'), 'utf8')
 );
+const OUT_DIR = path.join(ROOT, 'out');
 const PORT = 9400 + Math.floor(Math.random() * 500);
 const TIMEOUT_MS = 20_000;
+const EVALUATE_TIMEOUT_MS = 5_000;
+// Hard limit for the whole run, so a stuck app can never hang CI
+const WATCHDOG_MS = 60_000;
+
+/** The packaged app process, so the watchdog can kill it too */
+let child;
 
 const executablePath = () => {
     const outDir = path.join(
-        ROOT,
-        'out',
+        OUT_DIR,
         `${productName}-${process.platform}-${process.arch}`
     );
     switch (process.platform) {
@@ -56,6 +63,21 @@ const findPage = async () => {
 const evaluate = (page, expression) =>
     new Promise((resolve, reject) => {
         const socket = new WebSocket(page.webSocketDebuggerUrl);
+        let settled = false;
+        const settle = (callback, value) => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            clearTimeout(timer);
+            socket.close();
+            callback(value);
+        };
+        const timer = setTimeout(
+            () => settle(reject, new Error('DevTools did not answer in time')),
+            EVALUATE_TIMEOUT_MS
+        );
+
         socket.onopen = () =>
             socket.send(
                 JSON.stringify({
@@ -66,10 +88,12 @@ const evaluate = (page, expression) =>
             );
         socket.onmessage = (event) => {
             const { result } = JSON.parse(event.data);
-            socket.close();
-            resolve(result?.result?.value);
+            settle(resolve, result?.result?.value);
         };
-        socket.onerror = () => reject(new Error('DevTools connection failed'));
+        socket.onerror = () =>
+            settle(reject, new Error('DevTools connection failed'));
+        socket.onclose = () =>
+            settle(reject, new Error('DevTools connection closed early'));
     });
 
 const waitForUi = async (page) => {
@@ -101,7 +125,7 @@ const main = async () => {
     }
 
     const userDataDir = mkdtempSync(path.join(tmpdir(), 'gutty-os-smoke-'));
-    const child = spawn(
+    child = spawn(
         executable,
         [`--remote-debugging-port=${PORT}`, `--user-data-dir=${userDataDir}`],
         { stdio: ['ignore', 'pipe', 'pipe'] }
@@ -140,7 +164,19 @@ const main = async () => {
     }
 };
 
-main().catch((error) => {
-    console.error(`✘ ${error.message}`);
+const watchdog = setTimeout(() => {
+    console.error(`✘ Smoke test timed out after ${WATCHDOG_MS / 1000}s`);
+    child?.kill('SIGKILL');
+    rmSync(OUT_DIR, { recursive: true, force: true });
     process.exit(1);
-});
+}, WATCHDOG_MS);
+
+main()
+    .catch((error) => {
+        console.error(`✘ ${error.message}`);
+        process.exitCode = 1;
+    })
+    .finally(() => {
+        clearTimeout(watchdog);
+        rmSync(OUT_DIR, { recursive: true, force: true });
+    });
