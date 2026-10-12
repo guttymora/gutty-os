@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { SPLASH_FADE_MS } from '@components/splash-screen/splash-screen';
+import { useUiStore } from '@stores/ui-store';
 
 import { App } from './app';
 
 describe('App', () => {
     beforeEach(() => {
+        useUiStore.setState({ isOptionsOpen: false });
+        vi.useFakeTimers();
         vi.stubGlobal('bridgeAPI', {
             platform: 'darwin',
             minimizeWindow: vi.fn(),
@@ -16,13 +21,56 @@ describe('App', () => {
 
     afterEach(() => {
         vi.unstubAllGlobals();
+        vi.useRealTimers();
     });
 
-    it('renders the GuttyOS title', () => {
+    it('shows the splash first, then the game library', () => {
         render(<App />);
+        expect(
+            screen.getByRole('img', { name: 'GuttyOS' })
+        ).toBeInTheDocument();
+        expect(screen.getByText('GuttyOS • GAMES')).toBeInTheDocument();
+
+        fireEvent.keyDown(window, { key: 'Enter' });
+        act(() => vi.advanceTimersByTime(SPLASH_FADE_MS));
+
+        expect(screen.queryByRole('img', { name: 'GuttyOS' })).toBeNull();
+        expect(
+            screen.getByRole('navigation', { name: 'Platforms' })
+        ).toBeInTheDocument();
+    });
+
+    it('opens the options panel from the hint bar', () => {
+        render(<App />);
+        fireEvent.keyDown(window, { key: 'Enter' });
+        act(() => vi.advanceTimersByTime(SPLASH_FADE_MS));
+
+        fireEvent.click(screen.getByRole('button', { name: 'TabOptions' }));
 
         expect(
-            screen.getByRole('heading', { name: 'GuttyOS' })
+            screen.getByRole('dialog', { name: 'Options' })
         ).toBeInTheDocument();
+    });
+
+    it('opens options with Tab and closes them with Escape', () => {
+        render(<App />);
+        fireEvent.keyDown(window, { key: 'Enter' });
+        act(() => vi.advanceTimersByTime(SPLASH_FADE_MS));
+
+        fireEvent.keyDown(window, { key: 'Tab' });
+        expect(
+            screen.getByRole('dialog', { name: 'Options' })
+        ).toBeInTheDocument();
+
+        fireEvent.keyDown(window, { key: 'Escape' });
+        expect(screen.queryByRole('dialog', { name: 'Options' })).toBeNull();
+    });
+
+    it('ignores Tab while the splash is showing', () => {
+        render(<App />);
+
+        fireEvent.keyDown(window, { key: 'Tab' });
+
+        expect(screen.queryByRole('dialog', { name: 'Options' })).toBeNull();
     });
 });

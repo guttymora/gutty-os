@@ -1,0 +1,76 @@
+.hints {
+    margin: var(--pixel);
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-paper);
+    box-shadow: var(--pixel-border);
+}
+
+.list {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.hint {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* Clickable hints look the same as static ones */
+button.hint {
+    padding: 0;
+    border: none;
+    background: none;
+}
+
+button.hint:hover {
+    color: var(--color-ink-muted);
+}
+
+.button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    border: var(--pixel) solid var(--color-line);
+    border-radius: 50%;
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    background: var(--color-paper);
+}
+
+.button[data-button='a'] {
+    color: var(--color-button-a);
+    background: var(--color-button-a-fill);
+}
+
+.button[data-button='b'] {
+    color: var(--color-button-b);
+    background: var(--color-button-b-fill);
+}
+
+.button[data-button='x'] {
+    color: var(--color-button-x);
+    background: var(--color-button-x-fill);
+}
+
+.button[data-button='y'] {
+    color: var(--color-button-y);
+    background: var(--color-button-y-fill);
+}
+
+/* Keyboard keycap */
+.button[data-button='options'] {
+    padding: 0 var(--space-2);
+    border-radius: 4px;
+    font-size: var(--font-size-xs);
+    color: var(--color-ink-muted);
+}

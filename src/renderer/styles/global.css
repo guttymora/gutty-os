@@ -12,7 +12,38 @@ body,
 }
 
 body {
-    font-family:
-        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-        sans-serif;
+    font-family: var(--font-pixel);
+    font-size: var(--font-size-md);
+    color: var(--color-ink);
+    background: var(--color-paper);
+    -webkit-font-smoothing: none;
+    user-select: none;
+    cursor: default;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+}
+
+h1,
+h2,
+h3,
+p {
+    margin: 0;
+}
+
+/* Pixel scrollbars */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-surface);
+    border-left: var(--pixel) solid var(--color-line);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-ink-faint);
+    border: var(--pixel) solid var(--color-line);
 }

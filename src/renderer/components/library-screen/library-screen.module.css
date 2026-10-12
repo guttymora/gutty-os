@@ -1,0 +1,18 @@
+.library {
+    display: grid;
+    grid-template-columns: minmax(180px, 24%) 1fr minmax(220px, 29%);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--space-4);
+    height: 100%;
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    /* Graph-paper backdrop from the mockups */
+    background-color: var(--color-paper);
+    background-image:
+        linear-gradient(var(--color-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+.hints {
+    grid-column: 1 / -1;
+}

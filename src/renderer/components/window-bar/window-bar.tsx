@@ -1,7 +1,11 @@
-import styles from './title-bar.module.css';
+import type { ReactNode } from 'react';
 
-type TitleBarProps = {
+import styles from './window-bar.module.css';
+
+type WindowBarProps = {
     title: string;
+    /** Status items shown on the right side (clock, indicators...) */
+    trailing?: ReactNode;
 };
 
 type WindowControl = {
@@ -21,7 +25,7 @@ const ControlIcon = ({ id }: Pick<WindowControl, 'id'>) => {
     }
 };
 
-export const TitleBar = ({ title }: TitleBarProps) => {
+export const WindowBar = ({ title, trailing }: WindowBarProps) => {
     const { platform, closeWindow, minimizeWindow, toggleMaximizeWindow } =
         window.bridgeAPI;
     const isMac = platform === 'darwin';
@@ -48,32 +52,38 @@ export const TitleBar = ({ title }: TitleBarProps) => {
         ? [close, minimize, maximize]
         : [minimize, maximize, close];
 
+    const controlsElement = (
+        <div className={styles.controls}>
+            {controls.map(({ id, label, onClick }) => (
+                <button
+                    key={id}
+                    type="button"
+                    className={styles.control}
+                    data-control={id}
+                    aria-label={label}
+                    onClick={onClick}
+                >
+                    <svg
+                        className={styles.icon}
+                        viewBox="0 0 10 10"
+                        aria-hidden="true"
+                    >
+                        <ControlIcon id={id} />
+                    </svg>
+                </button>
+            ))}
+        </div>
+    );
+
     return (
         <header
-            className={styles.titleBar}
+            className={styles.windowBar}
             data-platform={isMac ? 'mac' : 'default'}
         >
-            <div className={styles.controls}>
-                {controls.map(({ id, label, onClick }) => (
-                    <button
-                        key={id}
-                        type="button"
-                        className={styles.control}
-                        data-control={id}
-                        aria-label={label}
-                        onClick={onClick}
-                    >
-                        <svg
-                            className={styles.icon}
-                            viewBox="0 0 10 10"
-                            aria-hidden="true"
-                        >
-                            <ControlIcon id={id} />
-                        </svg>
-                    </button>
-                ))}
-            </div>
+            {isMac && controlsElement}
             <span className={styles.title}>{title}</span>
+            <div className={styles.trailing}>{trailing}</div>
+            {!isMac && controlsElement}
         </header>
     );
 };

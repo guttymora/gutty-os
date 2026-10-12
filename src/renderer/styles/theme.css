@@ -1,0 +1,40 @@
+:root {
+    /*
+     * Colors (--color-*) come from the active palette, applied at runtime
+     * from src/renderer/data/palettes.ts.
+     */
+
+    /* Typography */
+    --font-pixel: 'Pixelify Sans Variable', monospace;
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-md: 16px;
+    --font-size-lg: 20px;
+    --font-size-xl: 28px;
+
+    /* Spacing */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+
+    /*
+     * Pixel border: four offset shadows leave the corners empty, giving the
+     * stepped corner of old handheld UIs. Shadows don't take layout space,
+     * so keep at least --pixel of room around bordered elements.
+     */
+    --pixel: 2px;
+    --pixel-border:
+        0 calc(-1 * var(--pixel)) 0 0 var(--color-line),
+        0 var(--pixel) 0 0 var(--color-line),
+        calc(-1 * var(--pixel)) 0 0 0 var(--color-line),
+        var(--pixel) 0 0 0 var(--color-line);
+    --pixel-border-muted:
+        0 calc(-1 * var(--pixel)) 0 0 var(--color-ink-faint),
+        0 var(--pixel) 0 0 var(--color-ink-faint),
+        calc(-1 * var(--pixel)) 0 0 0 var(--color-ink-faint),
+        var(--pixel) 0 0 0 var(--color-ink-faint);
+
+    --transition-fast: 120ms steps(3);
+}

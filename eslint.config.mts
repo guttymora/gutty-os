@@ -38,7 +38,7 @@ export default defineConfig(
                     ],
                     pathGroups: [
                         {
-                            pattern: '@{components,styles,shared}/**',
+                            pattern: '@{assets,components,data,hooks,shared,stores,styles,utils}/**',
                             group: 'internal',
                         },
                     ],
