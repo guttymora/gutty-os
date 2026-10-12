@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { TitleBar } from './title-bar';
+import { WindowBar } from './window-bar';
 
 const stubBridgeAPI = (platform: NodeJS.Platform) => {
     const api = {
@@ -22,21 +22,21 @@ const getControlLabels = () =>
         .getAllByRole('button')
         .map((button) => button.getAttribute('aria-label'));
 
-describe('TitleBar', () => {
+describe('WindowBar', () => {
     afterEach(() => {
         vi.unstubAllGlobals();
     });
 
     it('renders the title', () => {
         stubBridgeAPI('darwin');
-        render(<TitleBar title="GuttyOS" />);
+        render(<WindowBar title="GuttyOS" />);
 
         expect(screen.getByText('GuttyOS')).toBeInTheDocument();
     });
 
     it('uses macOS traffic-light order on darwin', () => {
         stubBridgeAPI('darwin');
-        render(<TitleBar title="GuttyOS" />);
+        render(<WindowBar title="GuttyOS" />);
 
         expect(screen.getByRole('banner')).toHaveAttribute(
             'data-platform',
@@ -51,7 +51,7 @@ describe('TitleBar', () => {
 
     it('uses minimize, maximize, close order on other platforms', () => {
         stubBridgeAPI('win32');
-        render(<TitleBar title="GuttyOS" />);
+        render(<WindowBar title="GuttyOS" />);
 
         expect(screen.getByRole('banner')).toHaveAttribute(
             'data-platform',
@@ -67,7 +67,7 @@ describe('TitleBar', () => {
     it('calls the window bridge when a control is clicked', async () => {
         const user = userEvent.setup();
         const api = stubBridgeAPI('darwin');
-        render(<TitleBar title="GuttyOS" />);
+        render(<WindowBar title="GuttyOS" />);
 
         await user.click(screen.getByRole('button', { name: 'Close window' }));
         await user.click(

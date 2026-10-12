@@ -9,7 +9,7 @@ export const createMainWindow = () => {
         height: 720,
         minWidth: 640,
         minHeight: 480,
-        // The title bar is drawn by the renderer (see TitleBar component)
+        // The window bar is drawn by the renderer (see WindowBar component)
         frame: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),

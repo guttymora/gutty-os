@@ -1,4 +1,4 @@
-.titleBar {
+.windowBar {
     position: relative;
     display: flex;
     align-items: center;
@@ -44,67 +44,67 @@
 }
 
 /* macOS: traffic lights, glyphs shown while hovering the group */
-.titleBar[data-platform='mac'] .controls {
+.windowBar[data-platform='mac'] .controls {
     gap: 8px;
 }
 
-.titleBar[data-platform='mac'] .control {
+.windowBar[data-platform='mac'] .control {
     width: 12px;
     height: 12px;
     border-radius: 50%;
     color: rgb(0 0 0 / 55%);
 }
 
-.titleBar[data-platform='mac'] .icon {
+.windowBar[data-platform='mac'] .icon {
     width: 8px;
     height: 8px;
     opacity: 0;
 }
 
-.titleBar[data-platform='mac'] .controls:hover .icon {
+.windowBar[data-platform='mac'] .controls:hover .icon {
     opacity: 1;
 }
 
-.titleBar[data-platform='mac'] .control[data-control='close'] {
+.windowBar[data-platform='mac'] .control[data-control='close'] {
     background: #ff5f57;
     box-shadow: inset 0 0 0 0.5px #e0443e;
 }
 
-.titleBar[data-platform='mac'] .control[data-control='minimize'] {
+.windowBar[data-platform='mac'] .control[data-control='minimize'] {
     background: #febc2e;
     box-shadow: inset 0 0 0 0.5px #dea123;
 }
 
-.titleBar[data-platform='mac'] .control[data-control='maximize'] {
+.windowBar[data-platform='mac'] .control[data-control='maximize'] {
     background: #28c840;
     box-shadow: inset 0 0 0 0.5px #1aab29;
 }
 
 /* Windows / Linux: rectangular buttons on the right */
-.titleBar[data-platform='default'] {
+.windowBar[data-platform='default'] {
     padding-right: 0;
 }
 
-.titleBar[data-platform='default'] .controls {
+.windowBar[data-platform='default'] .controls {
     margin-left: auto;
     align-self: stretch;
 }
 
-.titleBar[data-platform='default'] .control {
+.windowBar[data-platform='default'] .control {
     width: 46px;
     color: #333;
 }
 
-.titleBar[data-platform='default'] .icon {
+.windowBar[data-platform='default'] .icon {
     width: 10px;
     height: 10px;
 }
 
-.titleBar[data-platform='default'] .control:hover {
+.windowBar[data-platform='default'] .control:hover {
     background: rgb(0 0 0 / 8%);
 }
 
-.titleBar[data-platform='default'] .control[data-control='close']:hover {
+.windowBar[data-platform='default'] .control[data-control='close']:hover {
     background: #e81123;
     color: #fff;
 }

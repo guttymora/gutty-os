@@ -1,6 +1,6 @@
-import styles from './title-bar.module.css';
+import styles from './window-bar.module.css';
 
-type TitleBarProps = {
+type WindowBarProps = {
     title: string;
 };
 
@@ -21,7 +21,7 @@ const ControlIcon = ({ id }: Pick<WindowControl, 'id'>) => {
     }
 };
 
-export const TitleBar = ({ title }: TitleBarProps) => {
+export const WindowBar = ({ title }: WindowBarProps) => {
     const { platform, closeWindow, minimizeWindow, toggleMaximizeWindow } =
         window.bridgeAPI;
     const isMac = platform === 'darwin';
@@ -50,7 +50,7 @@ export const TitleBar = ({ title }: TitleBarProps) => {
 
     return (
         <header
-            className={styles.titleBar}
+            className={styles.windowBar}
             data-platform={isMac ? 'mac' : 'default'}
         >
             <div className={styles.controls}>
