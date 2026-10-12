@@ -98,22 +98,32 @@ const evaluate = (page, expression) =>
 
 const waitForUi = async (page) => {
     const deadline = Date.now() + TIMEOUT_MS;
+    let lastError;
     while (Date.now() < deadline) {
-        const state = await evaluate(
-            page,
-            `({
-                url: location.href,
-                title: document.title,
-                rendered: document.getElementById('root')?.childElementCount > 0,
-                palette: document.documentElement.dataset.palette,
-            })`
-        );
-        if (state?.rendered) {
-            return state;
+        try {
+            const state = await evaluate(
+                page,
+                `({
+                    url: location.href,
+                    title: document.title,
+                    rendered: document.getElementById('root')?.childElementCount > 0,
+                    palette: document.documentElement.dataset.palette,
+                })`
+            );
+            if (state?.rendered) {
+                return state;
+            }
+        } catch (error) {
+            // DevTools can hiccup while the app boots: retry until the deadline
+            lastError = error;
         }
         await sleep(250);
     }
-    throw new Error('The renderer loaded but React never rendered');
+    throw new Error(
+        `The renderer loaded but React never rendered${
+            lastError ? ` (last error: ${lastError.message})` : ''
+        }`
+    );
 };
 
 const main = async () => {

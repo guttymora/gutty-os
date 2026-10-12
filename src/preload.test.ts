@@ -128,17 +128,16 @@ describe('preload bridge <-> main window controls', () => {
 
     it('only sends on channels that have a handler', () => {
         ipc.sentChannels.clear();
-
-        // Call every function the bridge exposes
-        for (const value of Object.values(bridgeAPI)) {
-            if (typeof value === 'function') {
-                value();
+        const callEveryBridgeFunction = () => {
+            for (const value of Object.values(bridgeAPI)) {
+                if (typeof value === 'function') {
+                    value();
+                }
             }
-        }
+        };
 
+        // The IPC mock throws when a channel has no handler
+        expect(callEveryBridgeFunction).not.toThrow();
         expect(ipc.sentChannels.size).toBeGreaterThan(0);
-        for (const channel of ipc.sentChannels) {
-            expect(ipc.handlers.has(channel)).toBe(true);
-        }
     });
 });
