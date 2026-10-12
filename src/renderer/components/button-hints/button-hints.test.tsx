@@ -10,6 +10,6 @@ describe('ButtonHints', () => {
 
         expect(
             screen.getAllByRole('listitem').map((item) => item.textContent)
-        ).toEqual(['aPlay', 'bBack', 'xSearch', 'yRandom', 'selectOptions']);
+        ).toEqual(['APlay', 'BBack', 'XSearch', 'YRandom', 'TabOptions']);
     });
 });

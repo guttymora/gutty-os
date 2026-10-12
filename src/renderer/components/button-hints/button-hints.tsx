@@ -1,27 +1,18 @@
+import { CONTROLS, type ControlId } from '@data/controls';
+
 import styles from './button-hints.module.css';
 
-type Hint = {
-    button: 'a' | 'b' | 'x' | 'y' | 'select';
-    label: string;
-};
-
-const HINTS: Hint[] = [
-    { button: 'a', label: 'Play' },
-    { button: 'b', label: 'Back' },
-    { button: 'x', label: 'Search' },
-    { button: 'y', label: 'Random' },
-    { button: 'select', label: 'Options' },
-];
+const HINT_ORDER: ControlId[] = ['a', 'b', 'x', 'y', 'options'];
 
 export const ButtonHints = () => (
     <footer className={styles.hints}>
         <ul className={styles.list}>
-            {HINTS.map(({ button, label }) => (
-                <li key={button} className={styles.hint}>
-                    <span className={styles.button} data-button={button}>
-                        {button}
-                    </span>
-                    {label}
+            {HINT_ORDER.map((id) => (
+                <li key={id} className={styles.hint}>
+                    <kbd className={styles.button} data-button={id}>
+                        {CONTROLS[id].glyph}
+                    </kbd>
+                    {CONTROLS[id].label}
                 </li>
             ))}
         </ul>
