@@ -147,3 +147,7 @@ out/
 
 # IDEs
 .idea/
+
+# Playwright
+test-results/
+playwright-report/

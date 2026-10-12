@@ -4,3 +4,6 @@ allowBuilds:
   unrs-resolver: true
 
 nodeLinker: hoisted
+
+# Always save exact versions (no ^ or ~ ranges) when adding dependencies
+savePrefix: ''
