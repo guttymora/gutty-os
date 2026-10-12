@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 
 import { App } from '@components/app/app';
 
+import '@fontsource-variable/pixelify-sans';
+import '@styles/theme.css';
 import '@styles/global.css';
 
 createRoot(document.getElementById('root') as HTMLElement).render(

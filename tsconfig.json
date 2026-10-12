@@ -17,6 +17,9 @@
         "paths": {
             "@components/*": ["./src/renderer/components/*"],
             "@styles/*": ["./src/renderer/styles/*"],
+            "@assets/*": ["./src/renderer/assets/*"],
+            "@data/*": ["./src/renderer/data/*"],
+            "@utils/*": ["./src/renderer/utils/*"],
             "@shared/*": ["./src/shared/*"]
         }
     },
