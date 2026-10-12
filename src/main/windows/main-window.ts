@@ -11,12 +11,16 @@ export const createMainWindow = () => {
         minHeight: 480,
         // The window bar is drawn by the renderer (see WindowBar component)
         frame: false,
+        // Stay hidden until the first paint to avoid a white flash
+        show: false,
+        backgroundColor: '#ffffff',
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
         },
     });
 
     mainWindow.setAspectRatio(ASPECT_RATIO);
+    mainWindow.once('ready-to-show', () => mainWindow.show());
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
