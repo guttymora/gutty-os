@@ -1,0 +1,48 @@
+.details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-height: 0;
+    /* Padding (not margin) so the pixel borders aren't clipped by the scroll box */
+    padding: var(--pixel);
+    overflow-y: auto;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--color-paper);
+    box-shadow: var(--pixel-border);
+}
+
+.title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    line-height: 1.15;
+    text-transform: uppercase;
+}
+
+.facts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.fact {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.fact dd {
+    margin: 0;
+}
+
+.playTime {
+    text-transform: none;
+}

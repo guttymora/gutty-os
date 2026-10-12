@@ -34,6 +34,13 @@ describe('WindowBar', () => {
         expect(screen.getByText('GuttyOS')).toBeInTheDocument();
     });
 
+    it('renders trailing status items', () => {
+        stubBridgeAPI('darwin');
+        render(<WindowBar title="GuttyOS" trailing={<time>12:34</time>} />);
+
+        expect(screen.getByText('12:34')).toBeInTheDocument();
+    });
+
     it('uses macOS traffic-light order on darwin', () => {
         stubBridgeAPI('darwin');
         render(<WindowBar title="GuttyOS" />);

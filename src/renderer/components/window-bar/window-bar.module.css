@@ -15,10 +15,20 @@
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 13px;
-    font-weight: 600;
-    color: #333;
+    font-size: var(--font-size-md);
+    font-weight: 700;
+    color: var(--color-ink);
     pointer-events: none;
+}
+
+.trailing {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-left: auto;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-ink);
 }
 
 .controls {
@@ -85,8 +95,11 @@
     padding-right: 0;
 }
 
+.windowBar[data-platform='default'] .trailing {
+    margin-right: var(--space-2);
+}
+
 .windowBar[data-platform='default'] .controls {
-    margin-left: auto;
     align-self: stretch;
 }
 

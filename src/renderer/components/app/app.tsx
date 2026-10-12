@@ -1,7 +1,10 @@
 import { useCallback, useState } from 'react';
 
+import { Clock } from '@components/clock/clock';
+import { LibraryScreen } from '@components/library-screen/library-screen';
 import { SplashScreen } from '@components/splash-screen/splash-screen';
 import { WindowBar } from '@components/window-bar/window-bar';
+import { MOCK_GAMES } from '@data/mock-games';
 
 import styles from './app.module.css';
 
@@ -11,13 +14,11 @@ export const App = () => {
 
     return (
         <div className={styles.app}>
-            <WindowBar title="GuttyOS" />
-            <div className={styles.content}>
+            <WindowBar title="GuttyOS • GAMES" trailing={<Clock />} />
+            <main className={styles.content}>
                 {showSplash && <SplashScreen onFinish={hideSplash} />}
-                <main className={styles.main}>
-                    <h1>GuttyOS</h1>
-                </main>
-            </div>
+                <LibraryScreen games={MOCK_GAMES} />
+            </main>
         </div>
     );
 };
