@@ -9,9 +9,9 @@
 .list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: var(--space-1);
     margin: 0;
-    padding: var(--pixel);
+    padding: 0;
     list-style: none;
 }
 
@@ -20,8 +20,10 @@
     align-items: center;
     gap: var(--space-3);
     width: 100%;
-    padding: var(--space-2);
-    border: none;
+    padding: var(--space-1) var(--space-2);
+    /* Transparent border keeps items the same size when selected */
+    border: var(--pixel) solid transparent;
+    border-radius: 2px;
     background: none;
     font-size: var(--font-size-md);
     font-weight: 700;
@@ -35,7 +37,7 @@
 
 .item[aria-current='true'] {
     background: var(--color-surface);
-    box-shadow: var(--pixel-border);
+    border-color: var(--color-line);
 }
 
 .icon {
