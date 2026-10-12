@@ -5,7 +5,7 @@
     flex-shrink: 0;
     height: 32px;
     padding: 0 12px;
-    background: #fff;
+    background: var(--color-paper);
     user-select: none;
     /* The whole bar drags the window; interactive children opt out below */
     -webkit-app-region: drag;

@@ -1,26 +1,8 @@
 :root {
-    /* Base palette: near-monochrome, slightly cool like the splash art */
-    --color-paper: #ffffff;
-    --color-surface: #f4f5f7;
-    --color-surface-strong: #e6e8ec;
-    --color-grid: #e4e7ec;
-    --color-line: #24262c;
-    --color-ink: #1d1f24;
-    --color-ink-muted: #5f646d;
-    --color-ink-faint: #a4a9b1;
-
-    /* Accents: the only saturated colors besides cover art */
-    --color-star: #f5c211;
-    --color-star-empty: #cfd3d9;
-    --color-button-a: #e0393e;
-    --color-button-b: #e0a100;
-    --color-button-x: #2f6fdf;
-    --color-button-y: #2a9d4b;
-
-    /* Platform accents (badges, cover placeholders) */
-    --color-platform-gb: #7d8f1e;
-    --color-platform-gbc: #7b3fbf;
-    --color-platform-gba: #4b46b8;
+    /*
+     * Colors (--color-*) come from the active palette, applied at runtime
+     * from src/renderer/data/palettes.ts.
+     */
 
     /* Typography */
     --font-pixel: 'Pixelify Sans Variable', monospace;

@@ -3,11 +3,13 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SPLASH_FADE_MS } from '@components/splash-screen/splash-screen';
+import { useUiStore } from '@stores/ui-store';
 
 import { App } from './app';
 
 describe('App', () => {
     beforeEach(() => {
+        useUiStore.setState({ isOptionsOpen: false });
         vi.useFakeTimers();
         vi.stubGlobal('bridgeAPI', {
             platform: 'darwin',
@@ -35,6 +37,18 @@ describe('App', () => {
         expect(screen.queryByRole('img', { name: 'GuttyOS' })).toBeNull();
         expect(
             screen.getByRole('navigation', { name: 'Platforms' })
+        ).toBeInTheDocument();
+    });
+
+    it('opens the options panel from the hint bar', () => {
+        render(<App />);
+        fireEvent.keyDown(window, { key: 'Enter' });
+        act(() => vi.advanceTimersByTime(SPLASH_FADE_MS));
+
+        fireEvent.click(screen.getByRole('button', { name: 'TabOptions' }));
+
+        expect(
+            screen.getByRole('dialog', { name: 'Options' })
         ).toBeInTheDocument();
     });
 });

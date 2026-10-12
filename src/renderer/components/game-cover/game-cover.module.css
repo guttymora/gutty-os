@@ -30,7 +30,7 @@
 .strip {
     flex-shrink: 0;
     background: var(--platform-color);
-    color: var(--color-paper);
+    color: var(--color-ink);
 }
 
 .cover[data-size='thumbnail'] .strip {

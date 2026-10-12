@@ -6,6 +6,7 @@ import { GameList } from '@components/game-list/game-list';
 import { PlatformSidebar } from '@components/platform-sidebar/platform-sidebar';
 import type { PlatformFilter } from '@data/platforms';
 import type { Game } from '@shared/game';
+import { useUiStore } from '@stores/ui-store';
 import { filterGames } from '@utils/games';
 
 import styles from './library-screen.module.css';
@@ -17,6 +18,7 @@ type LibraryScreenProps = {
 export const LibraryScreen = ({ games }: LibraryScreenProps) => {
     const [platform, setPlatform] = useState<PlatformFilter>('all');
     const [selectedId, setSelectedId] = useState<string>();
+    const openOptions = useUiStore((state) => state.openOptions);
 
     const visibleGames = useMemo(
         () => filterGames(games, platform),
@@ -40,7 +42,7 @@ export const LibraryScreen = ({ games }: LibraryScreenProps) => {
                 <div aria-hidden="true" />
             )}
             <div className={styles.hints}>
-                <ButtonHints />
+                <ButtonHints onPress={{ options: openOptions }} />
             </div>
         </div>
     );

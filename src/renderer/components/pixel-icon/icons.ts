@@ -1,6 +1,6 @@
 import type { PixelArt } from './art-to-rects';
 
-const INK = '#1d1f24';
+const LINE = 'var(--color-line)';
 
 const STAR_ROWS = [
     '.....k.....',
@@ -50,40 +50,40 @@ const LANDSCAPE_HANDHELD_ROWS = [
 export const icons = {
     star: {
         rows: STAR_ROWS,
-        palette: { k: INK, y: 'var(--color-star)' },
+        palette: { k: LINE, y: 'var(--color-star)' },
     },
     starEmpty: {
         rows: STAR_ROWS,
-        palette: { k: INK, y: 'var(--color-star-empty)' },
+        palette: { k: LINE, y: 'var(--color-star-empty)' },
     },
     gameBoy: {
         rows: PORTRAIT_HANDHELD_ROWS,
         palette: {
-            k: INK,
-            b: '#c9c7c2',
-            d: '#5b5d6b',
-            s: '#9bbc0f',
-            a: '#a3195b',
+            k: LINE,
+            b: 'var(--color-device-gb-body)',
+            d: 'var(--color-device-bezel)',
+            s: 'var(--color-device-gb-screen)',
+            a: 'var(--color-device-gb-buttons)',
         },
     },
     gameBoyColor: {
         rows: PORTRAIT_HANDHELD_ROWS,
         palette: {
-            k: INK,
-            b: '#8a4fd1',
-            d: '#2b2b35',
-            s: '#a8e0ec',
-            a: INK,
+            k: LINE,
+            b: 'var(--color-device-gbc-body)',
+            d: 'var(--color-device-bezel)',
+            s: 'var(--color-device-gbc-screen)',
+            a: 'var(--color-device-gbc-buttons)',
         },
     },
     gameBoyAdvance: {
         rows: LANDSCAPE_HANDHELD_ROWS,
         palette: {
-            k: INK,
-            b: '#5a54d1',
-            d: '#2b2b35',
-            s: '#c4d6ff',
-            a: '#d9d7d2',
+            k: LINE,
+            b: 'var(--color-device-gba-body)',
+            d: 'var(--color-device-bezel)',
+            s: 'var(--color-device-gba-screen)',
+            a: 'var(--color-device-gba-buttons)',
         },
     },
 } satisfies Record<string, PixelArt>;
