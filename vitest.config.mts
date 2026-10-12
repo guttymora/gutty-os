@@ -24,12 +24,13 @@ export default mergeConfig(
                 ],
                 reporter: ['text', 'html'],
                 reportsDirectory: 'coverage',
-                // Fail the run if coverage drops below the current baseline
+                // Baseline is 100% lines/functions and ~96.7% branches; fail
+                // on any real drop while leaving room for a stray branch
                 thresholds: {
-                    statements: 90,
-                    branches: 85,
-                    functions: 90,
-                    lines: 90,
+                    statements: 98,
+                    branches: 95,
+                    functions: 98,
+                    lines: 98,
                 },
             },
         },

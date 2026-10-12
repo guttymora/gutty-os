@@ -29,9 +29,9 @@
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
         "test:e2e": "electron-forge package && playwright test",
-        "build:check": "electron-forge package && node scripts/smoke-packaged.mjs && rm -rf out",
+        "build:check": "electron-forge package && node scripts/smoke-packaged.mjs",
         "ci": "pnpm run prettier:check && pnpm run lint && pnpm run typecheck && pnpm run test",
-        "ci:full": "pnpm run prettier:check && pnpm run lint && pnpm run typecheck && pnpm run test:coverage && pnpm run build:check && playwright test"
+        "ci:full": "pnpm run ci && pnpm run test:coverage && pnpm run build:check && pnpm run test:e2e"
     },
     "devDependencies": {
         "@electron-forge/cli": "8.0.1",
