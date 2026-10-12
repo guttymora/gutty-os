@@ -51,4 +51,26 @@ describe('App', () => {
             screen.getByRole('dialog', { name: 'Options' })
         ).toBeInTheDocument();
     });
+
+    it('opens options with Tab and closes them with Escape', () => {
+        render(<App />);
+        fireEvent.keyDown(window, { key: 'Enter' });
+        act(() => vi.advanceTimersByTime(SPLASH_FADE_MS));
+
+        fireEvent.keyDown(window, { key: 'Tab' });
+        expect(
+            screen.getByRole('dialog', { name: 'Options' })
+        ).toBeInTheDocument();
+
+        fireEvent.keyDown(window, { key: 'Escape' });
+        expect(screen.queryByRole('dialog', { name: 'Options' })).toBeNull();
+    });
+
+    it('ignores Tab while the splash is showing', () => {
+        render(<App />);
+
+        fireEvent.keyDown(window, { key: 'Tab' });
+
+        expect(screen.queryByRole('dialog', { name: 'Options' })).toBeNull();
+    });
 });

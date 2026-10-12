@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -43,5 +43,23 @@ describe('OptionsPanel', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
         expect(useUiStore.getState().isOptionsOpen).toBe(false);
+    });
+
+    it('closes with Escape while open', () => {
+        render(<OptionsPanel />);
+
+        fireEvent.keyDown(window, { key: 'Escape' });
+
+        expect(useUiStore.getState().isOptionsOpen).toBe(false);
+    });
+
+    it('stops listening for Escape once closed', () => {
+        const { unmount } = render(<OptionsPanel />);
+        unmount();
+        useUiStore.setState({ isOptionsOpen: true });
+
+        fireEvent.keyDown(window, { key: 'Escape' });
+
+        expect(useUiStore.getState().isOptionsOpen).toBe(true);
     });
 });

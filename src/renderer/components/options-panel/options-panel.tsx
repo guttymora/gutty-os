@@ -1,4 +1,5 @@
 import { PALETTES, type PaletteColors } from '@data/palettes';
+import { useKeyPress } from '@hooks/use-key-press';
 import { useThemeStore } from '@stores/theme-store';
 import { useUiStore } from '@stores/ui-store';
 
@@ -14,10 +15,15 @@ const SWATCH_KEYS: (keyof PaletteColors)[] = [
     'platformGbc',
 ];
 
+const CLOSE_KEYS = ['Escape'];
+
 export const OptionsPanel = () => {
     const paletteId = useThemeStore((state) => state.paletteId);
     const setPalette = useThemeStore((state) => state.setPalette);
     const closeOptions = useUiStore((state) => state.closeOptions);
+
+    // Registered while the panel is mounted, removed when it closes
+    useKeyPress(CLOSE_KEYS, closeOptions);
 
     return (
         <div className={styles.backdrop} onClick={closeOptions}>
