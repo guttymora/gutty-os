@@ -1,4 +1,14 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+    afterEach,
+    beforeAll,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vitest';
+
+import { IpcChannels } from '@shared/ipc-channels';
 
 import type { BridgeAPI } from './preload';
 
@@ -8,6 +18,7 @@ import type { BridgeAPI } from './preload';
  */
 const ipc = vi.hoisted(() => {
     const handlers = new Map<string, (event: unknown) => void>();
+    const sentChannels = new Set<string>();
     const exposed: Record<string, unknown> = {};
     const window = {
         minimize: vi.fn(),
@@ -20,7 +31,7 @@ const ipc = vi.hoisted(() => {
     };
     const sender = { id: 1 };
 
-    return { handlers, exposed, window, sender };
+    return { handlers, sentChannels, exposed, window, sender };
 });
 
 vi.mock('electron', () => ({
@@ -29,8 +40,15 @@ vi.mock('electron', () => ({
             ipc.handlers.set(channel, handler),
     },
     ipcRenderer: {
-        send: (channel: string) =>
-            ipc.handlers.get(channel)?.({ sender: ipc.sender }),
+        send: (channel: string) => {
+            ipc.sentChannels.add(channel);
+            const handler = ipc.handlers.get(channel);
+            // A real ipcRenderer would drop it silently; fail loudly instead
+            if (!handler) {
+                throw new Error(`No main-process handler for "${channel}"`);
+            }
+            handler({ sender: ipc.sender });
+        },
     },
     contextBridge: {
         exposeInMainWorld: (name: string, api: unknown) => {
@@ -42,6 +60,11 @@ vi.mock('electron', () => ({
             sender === ipc.sender ? ipc.window : null,
     },
 }));
+
+const ORIGINAL_PLATFORM = process.platform;
+
+const setPlatform = (platform: NodeJS.Platform) =>
+    Object.defineProperty(process, 'platform', { value: platform });
 
 describe('preload bridge <-> main window controls', () => {
     let bridgeAPI: BridgeAPI;
@@ -56,6 +79,10 @@ describe('preload bridge <-> main window controls', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        setPlatform(ORIGINAL_PLATFORM);
     });
 
     it('exposes the bridge to the renderer as window.bridgeAPI', () => {
@@ -75,18 +102,43 @@ describe('preload bridge <-> main window controls', () => {
         expect(ipc.window.close).toHaveBeenCalledOnce();
     });
 
-    it('toggles maximize / full screen on the sender window', () => {
+    it('enters full screen (and never maximizes) on macOS', () => {
+        setPlatform('darwin');
+
         bridgeAPI.toggleMaximizeWindow();
 
-        const toggled =
-            ipc.window.setFullScreen.mock.calls.length +
-            ipc.window.maximize.mock.calls.length;
-        expect(toggled).toBe(1);
+        expect(ipc.window.setFullScreen).toHaveBeenCalledWith(true);
+        expect(ipc.window.maximize).not.toHaveBeenCalled();
     });
 
-    it('has a main-process handler for every channel the bridge uses', () => {
+    it('maximizes (and never goes full screen) on other platforms', () => {
+        setPlatform('win32');
+
+        bridgeAPI.toggleMaximizeWindow();
+
+        expect(ipc.window.maximize).toHaveBeenCalledOnce();
+        expect(ipc.window.setFullScreen).not.toHaveBeenCalled();
+    });
+
+    it('has a main-process handler for every IPC channel', () => {
         expect([...ipc.handlers.keys()].sort()).toEqual(
-            ['window:close', 'window:minimize', 'window:toggle-maximize'].sort()
+            Object.values(IpcChannels).sort()
         );
+    });
+
+    it('only sends on channels that have a handler', () => {
+        ipc.sentChannels.clear();
+
+        // Call every function the bridge exposes
+        for (const value of Object.values(bridgeAPI)) {
+            if (typeof value === 'function') {
+                value();
+            }
+        }
+
+        expect(ipc.sentChannels.size).toBeGreaterThan(0);
+        for (const channel of ipc.sentChannels) {
+            expect(ipc.handlers.has(channel)).toBe(true);
+        }
     });
 });

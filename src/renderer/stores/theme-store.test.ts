@@ -3,15 +3,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_PALETTE_ID, getPalette } from '@data/palettes';
 
-import { initTheme, useThemeStore } from './theme-store';
+import { initTheme, THEME_STORAGE_KEY, useThemeStore } from './theme-store';
 
-const STORAGE_KEY = 'gutty-os:theme';
+// Read and write through the store's own persist storage, so the tests
+// don't depend on how zustand serializes the saved state
+const persistStorage = () => {
+    const { storage } = useThemeStore.persist.getOptions();
+    if (!storage) {
+        throw new Error('Theme store has no persist storage');
+    }
+
+    return storage;
+};
 
 const saveTheme = (paletteId: unknown) =>
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ state: { paletteId }, version: 0 })
-    );
+    persistStorage().setItem(THEME_STORAGE_KEY, {
+        state: { paletteId } as never,
+        version: 0,
+    });
 
 // Simulates an app restart: a fresh store module reading localStorage
 const loadFreshStore = async () => {
@@ -31,14 +40,13 @@ describe('useThemeStore', () => {
         expect(useThemeStore.getState().paletteId).toBe('escarcha');
     });
 
-    it('changes and persists the palette', () => {
+    it('changes and persists the palette', async () => {
         useThemeStore.getState().setPalette('algodon');
 
         expect(useThemeStore.getState().paletteId).toBe('algodon');
-        expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '')).toEqual({
-            state: { paletteId: 'algodon' },
-            version: 0,
-        });
+        expect(
+            (await persistStorage().getItem(THEME_STORAGE_KEY))?.state
+        ).toEqual({ paletteId: 'algodon' });
     });
 
     it('restores the saved palette on startup', async () => {
@@ -58,7 +66,7 @@ describe('useThemeStore', () => {
     });
 
     it('falls back to the default when the saved data is corrupted', async () => {
-        localStorage.setItem(STORAGE_KEY, '{not json');
+        localStorage.setItem(THEME_STORAGE_KEY, '{not json');
 
         const store = await loadFreshStore();
 

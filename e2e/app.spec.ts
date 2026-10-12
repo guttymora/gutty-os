@@ -23,14 +23,25 @@ test.afterEach(async () => {
 
 test.describe('window', () => {
     test('opens a frameless 960x720 window locked to 4:3', async () => {
-        const bounds = await launched.app.evaluate(({ BrowserWindow }) => {
+        const { app } = launched;
+
+        // The window is created hidden and shown on ready-to-show, which can
+        // land after domcontentloaded: wait for it instead of reading once
+        await expect
+            .poll(() =>
+                app.evaluate(({ BrowserWindow }) =>
+                    BrowserWindow.getAllWindows()[0].isVisible()
+                )
+            )
+            .toBe(true);
+
+        const bounds = await app.evaluate(({ BrowserWindow }) => {
             const window = BrowserWindow.getAllWindows()[0];
 
             return {
                 size: window.getSize(),
                 contentSize: window.getContentSize(),
                 minimumSize: window.getMinimumSize(),
-                visible: window.isVisible(),
             };
         });
 
@@ -38,7 +49,6 @@ test.describe('window', () => {
         // Frameless: no native title bar, so the window is all content
         expect(bounds.size).toEqual(bounds.contentSize);
         expect(bounds.minimumSize).toEqual([640, 480]);
-        expect(bounds.visible).toBe(true);
     });
 
     test('shows the splash, then the library', async () => {
@@ -102,6 +112,17 @@ test.describe('options and palettes', () => {
         await skipSplash(window);
         await window.keyboard.press('Tab');
         await window.getByRole('radio', { name: 'Sorbete' }).click();
+
+        // Only restart once the palette is applied and saved
+        await expect(window.locator('html')).toHaveAttribute(
+            'data-palette',
+            'sorbete'
+        );
+        await expect
+            .poll(() =>
+                window.evaluate(() => JSON.stringify({ ...localStorage }))
+            )
+            .toContain('sorbete');
         await launched.app.close();
 
         launched = await launchApp(userDataDir);

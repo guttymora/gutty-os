@@ -13,6 +13,8 @@ type ThemeState = {
     setPalette: (id: PaletteId) => void;
 };
 
+export const THEME_STORAGE_KEY = 'gutty-os:theme';
+
 const isPaletteId = (value: unknown): value is PaletteId =>
     PALETTES.some((palette) => palette.id === value);
 
@@ -23,7 +25,7 @@ export const useThemeStore = create<ThemeState>()(
             setPalette: (paletteId) => set({ paletteId }),
         }),
         {
-            name: 'gutty-os:theme',
+            name: THEME_STORAGE_KEY,
             storage: createJSONStorage(() => localStorage),
             partialize: ({ paletteId }) => ({ paletteId }),
             // Ignore saved palettes that no longer exist

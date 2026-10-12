@@ -1,11 +1,11 @@
-import { BrowserWindow } from 'electron';
 import path from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createMainWindow } from './main-window';
 
-vi.mock('electron', () => {
+// Defined in vi.hoisted so both the electron mock and the tests share it
+const { FakeBrowserWindow } = vi.hoisted(() => {
     class FakeBrowserWindow {
         static lastInstance: FakeBrowserWindow;
         readyToShow?: () => void;
@@ -24,25 +24,17 @@ vi.mock('electron', () => {
         }
     }
 
-    return { BrowserWindow: FakeBrowserWindow };
+    return { FakeBrowserWindow };
 });
 
-type FakeWindow = {
-    options: Electron.BrowserWindowConstructorOptions;
-    readyToShow?: () => void;
-    setAspectRatio: ReturnType<typeof vi.fn>;
-    show: ReturnType<typeof vi.fn>;
-    loadURL: ReturnType<typeof vi.fn>;
-    loadFile: ReturnType<typeof vi.fn>;
-};
+vi.mock('electron', () => ({ BrowserWindow: FakeBrowserWindow }));
 
 const createWindow = ({ devServerUrl }: { devServerUrl?: string }) => {
     vi.stubGlobal('MAIN_WINDOW_VITE_DEV_SERVER_URL', devServerUrl);
     vi.stubGlobal('MAIN_WINDOW_VITE_NAME', 'main_window');
     createMainWindow();
 
-    return (BrowserWindow as unknown as { lastInstance: FakeWindow })
-        .lastInstance;
+    return FakeBrowserWindow.lastInstance;
 };
 
 describe('createMainWindow', () => {
