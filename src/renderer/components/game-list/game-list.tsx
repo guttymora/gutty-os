@@ -9,12 +9,19 @@ type GameListProps = {
     games: Game[];
     selectedId?: string;
     onSelect: (id: string) => void;
+    /** Shown instead of the list when there are no games */
+    emptyMessage?: string;
 };
 
-export const GameList = ({ games, selectedId, onSelect }: GameListProps) => (
+export const GameList = ({
+    games,
+    selectedId,
+    onSelect,
+    emptyMessage = 'No games yet',
+}: GameListProps) => (
     <section className={styles.panel} aria-label="Games">
         {games.length === 0 ? (
-            <p className={styles.empty}>No games yet</p>
+            <p className={styles.empty}>{emptyMessage}</p>
         ) : (
             <ul className={styles.list}>
                 {games.map((game) => (

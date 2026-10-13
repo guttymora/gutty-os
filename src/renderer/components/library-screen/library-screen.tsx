@@ -6,16 +6,27 @@ import { GameList } from '@components/game-list/game-list';
 import { PlatformSidebar } from '@components/platform-sidebar/platform-sidebar';
 import type { PlatformFilter } from '@data/platforms';
 import type { Game } from '@shared/game';
+import type { LibraryStatus } from '@stores/library-store';
 import { useUiStore } from '@stores/ui-store';
 import { filterGames } from '@utils/games';
 
 import styles from './library-screen.module.css';
 
-type LibraryScreenProps = {
-    games: Game[];
+const EMPTY_MESSAGES: Record<LibraryStatus, string> = {
+    loading: 'Loading games…',
+    ready: 'No games yet',
+    error: "Couldn't load your games",
 };
 
-export const LibraryScreen = ({ games }: LibraryScreenProps) => {
+type LibraryScreenProps = {
+    games: Game[];
+    status?: LibraryStatus;
+};
+
+export const LibraryScreen = ({
+    games,
+    status = 'ready',
+}: LibraryScreenProps) => {
     const [platform, setPlatform] = useState<PlatformFilter>('all');
     const [selectedId, setSelectedId] = useState<string>();
     const openOptions = useUiStore((state) => state.openOptions);
@@ -33,6 +44,7 @@ export const LibraryScreen = ({ games }: LibraryScreenProps) => {
             <PlatformSidebar selected={platform} onSelect={setPlatform} />
             <GameList
                 games={visibleGames}
+                emptyMessage={EMPTY_MESSAGES[status]}
                 selectedId={selectedGame?.id}
                 onSelect={setSelectedId}
             />

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -7,6 +7,8 @@ import {
     type ElectronApplication,
     type Page,
 } from '@playwright/test';
+
+import { MOCK_GAMES } from '../src/renderer/data/mock-games';
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 
@@ -34,7 +36,36 @@ export const createUserDataDir = () => {
         })
     );
 
+    seedLibrary(getTestLibraryPath(userDataDir));
+
     return userDataDir;
+};
+
+/** Writes a library.json with the sample games, so the UI has games to show */
+const seedLibrary = (libraryPath: string) => {
+    const games = Object.fromEntries(
+        MOCK_GAMES.map((game) => [
+            game.id,
+            {
+                platform: game.platform,
+                file: `roms/${game.platform}/${game.title}.${game.platform}`,
+                title: game.title,
+                addedAt: game.addedAt,
+                size: 1,
+                modifiedAt: game.addedAt,
+                lastPlayedAt: game.lastPlayedAt,
+                playTimeMinutes: game.playTimeMinutes,
+                isFavorite: game.isFavorite,
+                rating: game.rating,
+                missing: false,
+            },
+        ])
+    );
+    mkdirSync(libraryPath, { recursive: true });
+    writeFileSync(
+        path.join(libraryPath, 'library.json'),
+        JSON.stringify({ version: 1, games })
+    );
 };
 
 export const removeUserDataDir = (dir: string) =>

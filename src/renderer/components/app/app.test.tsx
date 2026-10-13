@@ -3,6 +3,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SPLASH_FADE_MS } from '@components/splash-screen/splash-screen';
+import { MOCK_GAMES } from '@data/mock-games';
+import { useLibraryStore } from '@stores/library-store';
 import { useUiStore } from '@stores/ui-store';
 
 import { App } from './app';
@@ -10,12 +12,14 @@ import { App } from './app';
 describe('App', () => {
     beforeEach(() => {
         useUiStore.setState({ isOptionsOpen: false });
+        useLibraryStore.setState({ status: 'loading', games: [] });
         vi.useFakeTimers();
         vi.stubGlobal('bridgeAPI', {
             platform: 'darwin',
             minimizeWindow: vi.fn(),
             toggleMaximizeWindow: vi.fn(),
             closeWindow: vi.fn(),
+            getGames: vi.fn().mockResolvedValue(MOCK_GAMES),
         });
     });
 
@@ -72,5 +76,15 @@ describe('App', () => {
         fireEvent.keyDown(window, { key: 'Tab' });
 
         expect(screen.queryByRole('dialog', { name: 'Options' })).toBeNull();
+    });
+
+    it('loads the games from the library on start', async () => {
+        render(<App />);
+        await act(async () => undefined);
+
+        expect(window.bridgeAPI.getGames).toHaveBeenCalledOnce();
+        expect(
+            screen.getByRole('button', { name: /Super Mario Land/ })
+        ).toBeInTheDocument();
     });
 });

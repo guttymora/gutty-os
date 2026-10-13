@@ -1,12 +1,12 @@
 import type { Game } from '@shared/game';
 
-// Sample library used until ROM scanning lands (Phase 3)
+// Sample library for tests (the app reads the real library.json)
 export const MOCK_GAMES: Game[] = [
     {
         id: 'super-mario-land',
         title: 'Super Mario Land',
         platform: 'gb',
-        romPath: '/roms/gb/Super Mario Land.gb',
+        addedAt: '2026-10-01T10:00:00.000Z',
         releaseYear: 1989,
         publisher: 'Nintendo',
         description:
@@ -20,7 +20,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'zelda-links-awakening',
         title: "The Legend of Zelda: Link's Awakening",
         platform: 'gb',
-        romPath: "/roms/gb/The Legend of Zelda - Link's Awakening.gb",
+        addedAt: '2026-10-01T10:00:00.000Z',
         releaseYear: 1993,
         publisher: 'Nintendo',
         description:
@@ -33,7 +33,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'pokemon-red',
         title: 'Pokémon Red',
         platform: 'gb',
-        romPath: '/roms/gb/Pokemon Red.gb',
+        addedAt: '2026-10-01T10:00:00.000Z',
         releaseYear: 1996,
         publisher: 'Nintendo',
         description:
@@ -46,7 +46,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'tetris',
         title: 'Tetris',
         platform: 'gb',
-        romPath: '/roms/gb/Tetris.gb',
+        addedAt: '2026-10-01T10:00:00.000Z',
         releaseYear: 1989,
         publisher: 'Nintendo',
         description: 'Rotate and drop falling blocks to clear lines.',
@@ -58,7 +58,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'metroid-ii',
         title: 'Metroid II: Return of Samus',
         platform: 'gb',
-        romPath: '/roms/gb/Metroid II - Return of Samus.gb',
+        addedAt: '2026-10-01T10:00:00.000Z',
         releaseYear: 1991,
         publisher: 'Nintendo',
         description: 'Samus descends into SR388 to wipe out the Metroids.',
@@ -70,7 +70,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'kirbys-dream-land',
         title: "Kirby's Dream Land",
         platform: 'gb',
-        romPath: "/roms/gb/Kirby's Dream Land.gb",
+        addedAt: '2026-10-01T10:00:00.000Z',
         releaseYear: 1992,
         publisher: 'Nintendo',
         description:
@@ -83,7 +83,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'pokemon-crystal',
         title: 'Pokémon Crystal',
         platform: 'gbc',
-        romPath: '/roms/gbc/Pokemon Crystal.gbc',
+        addedAt: '2026-10-02T10:00:00.000Z',
         releaseYear: 2000,
         publisher: 'Nintendo',
         description: 'Explore Johto and Kanto with a day and night cycle.',
@@ -95,7 +95,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'zelda-oracle-of-seasons',
         title: 'The Legend of Zelda: Oracle of Seasons',
         platform: 'gbc',
-        romPath: '/roms/gbc/The Legend of Zelda - Oracle of Seasons.gbc',
+        addedAt: '2026-10-02T10:00:00.000Z',
         releaseYear: 2001,
         publisher: 'Nintendo',
         description: 'Change the seasons of Holodrum with the Rod of Seasons.',
@@ -107,7 +107,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'wario-land-3',
         title: 'Wario Land 3',
         platform: 'gbc',
-        romPath: '/roms/gbc/Wario Land 3.gbc',
+        addedAt: '2026-10-02T10:00:00.000Z',
         releaseYear: 2000,
         publisher: 'Nintendo',
         description:
@@ -120,7 +120,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'metroid-fusion',
         title: 'Metroid Fusion',
         platform: 'gba',
-        romPath: '/roms/gba/Metroid Fusion.gba',
+        addedAt: '2026-10-03T10:00:00.000Z',
         releaseYear: 2002,
         publisher: 'Nintendo',
         description:
@@ -133,7 +133,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'zelda-minish-cap',
         title: 'The Legend of Zelda: The Minish Cap',
         platform: 'gba',
-        romPath: '/roms/gba/The Legend of Zelda - The Minish Cap.gba',
+        addedAt: '2026-10-03T10:00:00.000Z',
         releaseYear: 2004,
         publisher: 'Nintendo',
         description: 'Shrink down to Minish size to save Hyrule from Vaati.',
@@ -145,7 +145,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'advance-wars',
         title: 'Advance Wars',
         platform: 'gba',
-        romPath: '/roms/gba/Advance Wars.gba',
+        addedAt: '2026-10-03T10:00:00.000Z',
         releaseYear: 2001,
         publisher: 'Nintendo',
         description: 'Command Orange Star troops in turn-based battles.',
@@ -157,7 +157,7 @@ export const MOCK_GAMES: Game[] = [
         id: 'golden-sun',
         title: 'Golden Sun',
         platform: 'gba',
-        romPath: '/roms/gba/Golden Sun.gba',
+        addedAt: '2026-10-03T10:00:00.000Z',
         releaseYear: 2001,
         publisher: 'Nintendo',
         description:

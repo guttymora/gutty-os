@@ -54,4 +54,17 @@ describe('LibraryScreen', () => {
             screen.queryByRole('region', { name: 'Game details' })
         ).toBeNull();
     });
+
+    it.each([
+        ['loading', 'Loading games…'],
+        ['ready', 'No games yet'],
+        ['error', "Couldn't load your games"],
+    ] as const)(
+        'shows the %s message when the list is empty',
+        (status, text) => {
+            render(<LibraryScreen games={[]} status={status} />);
+
+            expect(screen.getByText(text)).toBeInTheDocument();
+        }
+    );
 });
