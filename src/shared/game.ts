@@ -1,5 +1,7 @@
 /** Platforms supported by mGBA */
-export type Platform = 'gb' | 'gbc' | 'gba';
+export const PLATFORM_IDS = ['gb', 'gbc', 'gba'] as const;
+
+export type Platform = (typeof PLATFORM_IDS)[number];
 
 export type Game = {
     id: string;

@@ -1,7 +1,11 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+
 import { expect, test } from '@playwright/test';
 
 import {
     createUserDataDir,
+    getTestLibraryPath,
     launchApp,
     type LaunchedApp,
     removeUserDataDir,
@@ -63,6 +67,23 @@ test.describe('window', () => {
             window.getByRole('navigation', { name: 'Platforms' })
         ).toBeVisible();
         await expect(window.getByText('GuttyOS • GAMES')).toBeVisible();
+    });
+});
+
+test.describe('game library folder', () => {
+    test('creates the library folders on first launch', async () => {
+        const library = getTestLibraryPath(userDataDir);
+
+        await expect
+            .poll(() =>
+                ['roms', 'saves', 'states'].flatMap((kind) =>
+                    ['gb', 'gbc', 'gba'].filter(
+                        (platform) =>
+                            !existsSync(path.join(library, kind, platform))
+                    )
+                )
+            )
+            .toEqual([]);
     });
 });
 
