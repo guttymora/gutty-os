@@ -1,3 +1,6 @@
+import { useState } from 'react';
+
+import { LibraryFolderSetting } from '@components/library-folder-setting/library-folder-setting';
 import { PALETTES, type PaletteColors } from '@data/palettes';
 import { useKeyPress } from '@hooks/use-key-press';
 import { useThemeStore } from '@stores/theme-store';
@@ -21,12 +24,19 @@ export const OptionsPanel = () => {
     const paletteId = useThemeStore((state) => state.paletteId);
     const setPalette = useThemeStore((state) => state.setPalette);
     const closeOptions = useUiStore((state) => state.closeOptions);
+    // While the library is moving the panel can't be closed
+    const [isBusy, setIsBusy] = useState(false);
+    const close = () => {
+        if (!isBusy) {
+            closeOptions();
+        }
+    };
 
     // Registered while the panel is mounted, removed when it closes
-    useKeyPress(CLOSE_KEYS, closeOptions);
+    useKeyPress(CLOSE_KEYS, close);
 
     return (
-        <div className={styles.backdrop} onClick={closeOptions}>
+        <div className={styles.backdrop} onClick={close}>
             <section
                 className={styles.panel}
                 role="dialog"
@@ -41,7 +51,8 @@ export const OptionsPanel = () => {
                     <button
                         type="button"
                         className={styles.close}
-                        onClick={closeOptions}
+                        disabled={isBusy}
+                        onClick={close}
                     >
                         Close
                     </button>
@@ -83,6 +94,8 @@ export const OptionsPanel = () => {
                         </button>
                     ))}
                 </div>
+
+                <LibraryFolderSetting onBusyChange={setIsBusy} />
             </section>
         </div>
     );

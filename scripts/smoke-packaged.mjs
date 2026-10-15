@@ -3,7 +3,13 @@
 // checks over the Chrome DevTools Protocol that the UI actually rendered.
 // Always removes out/ when done, pass or fail.
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+    existsSync,
+    mkdtempSync,
+    readFileSync,
+    rmSync,
+    writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -135,6 +141,14 @@ const main = async () => {
     }
 
     const userDataDir = mkdtempSync(path.join(tmpdir(), 'gutty-os-smoke-'));
+    // Keep the game library inside the temp folder (never create ~/gutty-os)
+    writeFileSync(
+        path.join(userDataDir, 'settings.json'),
+        JSON.stringify({
+            version: 1,
+            libraryPath: path.join(userDataDir, 'library'),
+        })
+    );
     child = spawn(
         executable,
         [`--remote-debugging-port=${PORT}`, `--user-data-dir=${userDataDir}`],

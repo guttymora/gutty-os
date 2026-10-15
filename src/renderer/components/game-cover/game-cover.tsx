@@ -16,12 +16,12 @@ type GameCoverProps = {
 export const GameCover = ({ game, size }: GameCoverProps) => {
     const platform = PLATFORMS[game.platform];
 
-    if (game.coverPath) {
+    if (game.coverUrl) {
         return (
             <img
                 className={styles.cover}
                 data-size={size}
-                src={game.coverPath}
+                src={game.coverUrl}
                 alt={`${game.title} cover`}
             />
         );

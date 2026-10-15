@@ -34,6 +34,25 @@
     box-shadow: var(--pixel-border);
 }
 
+.addThumbnail {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    aspect-ratio: 1;
+    margin: var(--pixel);
+    border: var(--pixel) dashed var(--color-ink-faint);
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-ink-muted);
+}
+
+.row:hover .addThumbnail {
+    border-color: var(--color-line);
+    color: var(--color-ink);
+}
+
 .text {
     display: flex;
     flex: 1;

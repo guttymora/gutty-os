@@ -8,7 +8,7 @@ const game = (title: string, platform: Game['platform']): Game => ({
     id: title,
     title,
     platform,
-    romPath: `/roms/${title}`,
+    addedAt: '2026-10-01T10:00:00.000Z',
     rating: 0,
     playTimeMinutes: 0,
     isFavorite: false,

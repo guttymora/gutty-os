@@ -1,0 +1,160 @@
+.backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--color-paper) 70%, transparent);
+}
+
+.dialog {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: min(440px, 90%);
+    padding: var(--space-4);
+    background: var(--color-paper);
+    box-shadow: var(--pixel-border);
+}
+
+/* Dashed outline while files are dragged over the dialog */
+.dialog[data-drag-over='true'] {
+    background: var(--color-surface);
+    outline: var(--pixel) dashed var(--color-line);
+    outline-offset: calc(-1 * var(--space-2));
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.close {
+    padding: var(--space-1) var(--space-2);
+    border: var(--pixel) solid var(--color-line);
+    border-radius: 2px;
+    background: var(--color-surface);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.hint,
+.note {
+    font-size: var(--font-size-sm);
+    color: var(--color-ink-muted);
+}
+
+.note {
+    font-size: var(--font-size-xs);
+}
+
+.slot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-2);
+    border: var(--pixel) dashed var(--color-ink-faint);
+    border-radius: 2px;
+}
+
+.slot[data-filled='true'] {
+    border-style: solid;
+    border-color: var(--color-line);
+    background: var(--color-surface);
+}
+
+.slotLabel {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+}
+
+.file {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.fileName {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.placeholder {
+    flex: 1;
+    font-size: var(--font-size-sm);
+    color: var(--color-ink-faint);
+}
+
+.badge {
+    padding: 0 var(--space-1);
+    border: var(--pixel) solid var(--color-line);
+    border-radius: 2px;
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+}
+
+.choose,
+.clear,
+.add {
+    border: var(--pixel) solid var(--color-line);
+    border-radius: 2px;
+    background: var(--color-paper);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.choose {
+    padding: 2px var(--space-2);
+    font-size: var(--font-size-xs);
+}
+
+.clear {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    line-height: 1;
+}
+
+.choose:hover,
+.clear:hover {
+    background: var(--color-surface);
+}
+
+.add {
+    padding: var(--space-2);
+    background: var(--color-button-a-fill);
+    color: var(--color-ink);
+}
+
+.add:disabled {
+    background: var(--color-surface);
+    color: var(--color-ink-faint);
+    border-color: var(--color-ink-faint);
+}
+
+.message {
+    padding: var(--space-2);
+    border-left: calc(var(--pixel) * 2) solid var(--color-ink-muted);
+    background: var(--color-surface);
+    font-size: var(--font-size-sm);
+}
+
+.message[data-tone='error'] {
+    border-left-color: var(--color-button-a);
+}
