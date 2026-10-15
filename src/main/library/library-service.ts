@@ -10,6 +10,28 @@ import {
     toGames,
 } from './library-file';
 import type { LibraryFolders } from './library-folders';
+import { hasChanges, type RescanReport, rescanLibrary } from './rescan-library';
+
+const REPORT_LABELS: Record<keyof RescanReport, string> = {
+    added: 'Added from the library folder',
+    renamed: 'Renamed',
+    missing: 'Missing (file not found)',
+    restored: 'Back in the library',
+    savesMoved: 'Saves moved into saves/',
+    saveConflicts: 'Saves left in place (one already exists)',
+    misplaced: 'In the wrong platform folder (ignored)',
+    duplicates: 'Duplicate copies (ignored)',
+};
+
+const logReport = (report: RescanReport) => {
+    for (const [key, files] of Object.entries(report)) {
+        if (files.length > 0) {
+            console.info(
+                `Library rescan — ${REPORT_LABELS[key as keyof RescanReport]}: ${files.join(', ')}`
+            );
+        }
+    }
+};
 
 /**
  * Holds the library in memory; the main process is the only writer of
@@ -23,8 +45,30 @@ export class LibraryService {
         private library: LibraryData
     ) {}
 
+    /** Loads library.json and brings it in line with the files on disk */
     static async open(folders: LibraryFolders) {
-        return new LibraryService(folders, await loadLibrary(folders.root));
+        const service = new LibraryService(
+            folders,
+            await loadLibrary(folders.root)
+        );
+        await service.rescan();
+        return service;
+    }
+
+    /** Re-reads roms/ and saves library.json if anything changed */
+    async rescan(): Promise<RescanReport> {
+        const { library, report } = await rescanLibrary({
+            folders: this.folders,
+            library: this.library,
+        });
+        if (library !== this.library) {
+            await saveLibrary(this.folders.root, library);
+            this.library = library;
+        }
+        if (hasChanges(report)) {
+            logReport(report);
+        }
+        return report;
     }
 
     getGames(): Game[] {

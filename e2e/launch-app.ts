@@ -1,4 +1,11 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import {
+    mkdirSync,
+    mkdtempSync,
+    rmSync,
+    statSync,
+    writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -41,27 +48,40 @@ export const createUserDataDir = () => {
     return userDataDir;
 };
 
-/** Writes a library.json with the sample games, so the UI has games to show */
+/**
+ * Writes a small fake ROM per sample game plus a matching library.json, so the
+ * startup rescan finds every game on disk and the UI has games to show.
+ */
 const seedLibrary = (libraryPath: string) => {
     const games = Object.fromEntries(
-        MOCK_GAMES.map((game) => [
-            game.id,
-            {
-                platform: game.platform,
-                file: `roms/${game.platform}/${game.title}.${game.platform}`,
-                title: game.title,
-                addedAt: game.addedAt,
-                size: 1,
-                modifiedAt: game.addedAt,
-                lastPlayedAt: game.lastPlayedAt,
-                playTimeMinutes: game.playTimeMinutes,
-                isFavorite: game.isFavorite,
-                rating: game.rating,
-                missing: false,
-            },
-        ])
+        MOCK_GAMES.map((game) => {
+            const contents = `sample rom: ${game.title}`;
+            // ":" isn't allowed in Finder file names
+            const fileName = `${game.title.replace(/:/g, ' -')}.${game.platform}`;
+            const file = `roms/${game.platform}/${fileName}`;
+            const romPath = path.join(libraryPath, file);
+            mkdirSync(path.dirname(romPath), { recursive: true });
+            writeFileSync(romPath, contents);
+            const stats = statSync(romPath);
+
+            return [
+                createHash('sha1').update(contents).digest('hex'),
+                {
+                    platform: game.platform,
+                    file,
+                    title: game.title,
+                    addedAt: game.addedAt,
+                    size: stats.size,
+                    modifiedAt: stats.mtime.toISOString(),
+                    lastPlayedAt: game.lastPlayedAt,
+                    playTimeMinutes: game.playTimeMinutes,
+                    isFavorite: game.isFavorite,
+                    rating: game.rating,
+                    missing: false,
+                },
+            ];
+        })
     );
-    mkdirSync(libraryPath, { recursive: true });
     writeFileSync(
         path.join(libraryPath, 'library.json'),
         JSON.stringify({ version: 1, games })

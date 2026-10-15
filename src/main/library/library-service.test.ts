@@ -117,4 +117,38 @@ describe('LibraryService', () => {
         expect(result.status).toBe('duplicate');
         expect((await stat(libraryFile)).mtimeMs).toBe(before);
     });
+
+    it('picks up ROMs added to roms/ by hand when it opens', async () => {
+        const info = vi
+            .spyOn(console, 'info')
+            .mockImplementation(() => undefined);
+        await writeFile(path.join(folders.roms.gba, 'Golden Sun.gba'), 'gs');
+
+        const service = await LibraryService.open(folders);
+
+        expect(service.getGames().map((game) => game.title)).toEqual([
+            'Golden Sun',
+        ]);
+        const saved = JSON.parse(
+            await readFile(path.join(folders.root, 'library.json'), 'utf8')
+        );
+        expect(Object.keys(saved.games)).toHaveLength(1);
+        expect(info).toHaveBeenCalledWith(
+            expect.stringContaining('Added from the library folder')
+        );
+    });
+
+    it('does not log or save when a rescan finds nothing new', async () => {
+        const info = vi
+            .spyOn(console, 'info')
+            .mockImplementation(() => undefined);
+        const service = await LibraryService.open(folders);
+        const libraryFile = path.join(folders.root, 'library.json');
+        const before = (await stat(libraryFile)).mtimeMs;
+
+        await service.rescan();
+
+        expect(info).not.toHaveBeenCalled();
+        expect((await stat(libraryFile)).mtimeMs).toBe(before);
+    });
 });
