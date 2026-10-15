@@ -179,7 +179,10 @@ test.describe('library', () => {
             .getByRole('button', { name: 'GB Color' })
             .click();
 
-        await expect(games.getByRole('button')).toHaveCount(3);
+        // Game rows only, not the "Add a game" item at the top
+        await expect(
+            games.getByRole('button').filter({ hasNotText: 'Add a game' })
+        ).toHaveCount(3);
         await expect(details.getByRole('heading')).toHaveText(
             'Pokémon Crystal'
         );
