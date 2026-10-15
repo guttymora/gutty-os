@@ -71,6 +71,10 @@ export class LibraryService {
         return report;
     }
 
+    get isImporting() {
+        return this.importing;
+    }
+
     getGames(): Game[] {
         return toGames(this.library);
     }

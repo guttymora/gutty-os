@@ -10,12 +10,12 @@ import type { ImportFileKind, ImportResult, StageResult } from '@shared/import';
 import { IpcChannels } from '@shared/ipc-channels';
 
 import type { ImportStaging } from '../library/import-staging';
-import type { LibraryService } from '../library/library-service';
+import type { LibraryManager } from '../library/library-manager';
 
 type ImportIpcDependencies = {
     staging: ImportStaging;
     /** Undefined when the library folder couldn't be prepared */
-    getLibrary: () => LibraryService | undefined;
+    getLibrary: () => Pick<LibraryManager, 'importGame'> | undefined;
 };
 
 const isKind = (value: unknown): value is ImportFileKind =>

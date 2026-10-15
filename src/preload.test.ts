@@ -17,7 +17,7 @@ import type { Game } from '@shared/game';
 import type { ImportResult } from '@shared/import';
 import { IpcChannels } from '@shared/ipc-channels';
 
-import type { LibraryService } from './main/library/library-service';
+import type { LibraryManager } from './main/library/library-manager';
 import type { BridgeAPI } from './preload';
 
 /**
@@ -39,13 +39,23 @@ const ipc = vi.hoisted(() => {
         maximize: vi.fn(),
         unmaximize: vi.fn(),
     };
-    const sender = { id: 1 };
+    // Renderer-side listeners for events the main process sends
+    const listeners = new Map<string, Set<Handler>>();
+    const sender = {
+        id: 1,
+        isDestroyed: () => false,
+        send: (channel: string, ...args: unknown[]) =>
+            listeners
+                .get(channel)
+                ?.forEach((listener) => listener({}, ...args)),
+    };
     // What webUtils.getPathForFile returns for a dropped File
     const dropped = { path: '' };
     const showOpenDialog = vi.fn();
 
     return {
         handlers,
+        listeners,
         sentChannels,
         exposed,
         window,
@@ -78,6 +88,13 @@ vi.mock('electron', () => ({
         },
         invoke: async (channel: string, ...args: unknown[]) =>
             callHandler(channel, args),
+        on: (channel: string, listener: Handler) => {
+            const set = ipc.listeners.get(channel) ?? new Set<Handler>();
+            set.add(listener);
+            ipc.listeners.set(channel, set);
+        },
+        removeListener: (channel: string, listener: Handler) =>
+            ipc.listeners.get(channel)?.delete(listener),
     },
     contextBridge: {
         exposeInMainWorld: (name: string, api: unknown) => {
@@ -115,7 +132,30 @@ describe('preload bridge <-> main process', () => {
     let bridgeAPI: BridgeAPI;
     let sandbox: string;
     let romPath: string;
-    const library = { importGame: vi.fn(async () => ADDED) };
+    const library = {
+        getGames: vi.fn(() => LIBRARY),
+        getLocation: vi.fn(() => ({ displayPath: '~/gutty-os' })),
+        stageFolder: vi.fn(async () => ({
+            ok: true as const,
+            token: 'folder-token',
+            displayPath: '~/Games',
+        })),
+        moveTo: vi.fn(
+            async (
+                _token: unknown,
+                onProgress?: (progress: { done: number; total: number }) => void
+            ) => {
+                onProgress?.({ done: 1, total: 2 });
+                onProgress?.({ done: 2, total: 2 });
+                return {
+                    ok: true as const,
+                    location: { displayPath: '~/Games' },
+                    oldFilesLeft: false,
+                };
+            }
+        ),
+        importGame: vi.fn(async () => ADDED),
+    };
 
     beforeAll(async () => {
         sandbox = await mkdtemp(path.join(tmpdir(), 'gutty-os-test-'));
@@ -128,10 +168,10 @@ describe('preload bridge <-> main process', () => {
         const { registerImportIpc } = await import('./main/ipc/import');
         const { ImportStaging } = await import('./main/library/import-staging');
         registerWindowControls();
-        registerLibraryIpc(() => LIBRARY);
+        registerLibraryIpc(() => library as unknown as LibraryManager);
         registerImportIpc({
             staging: new ImportStaging(),
-            getLibrary: () => library as unknown as LibraryService,
+            getLibrary: () => library as unknown as LibraryManager,
         });
         await import('./preload');
         bridgeAPI = ipc.exposed.bridgeAPI as BridgeAPI;
@@ -275,6 +315,67 @@ describe('preload bridge <-> main process', () => {
         expect(library.importGame).not.toHaveBeenCalled();
     });
 
+    it('reads where the library is', async () => {
+        await expect(bridgeAPI.getLibraryLocation()).resolves.toEqual({
+            displayPath: '~/gutty-os',
+        });
+    });
+
+    it('opens a folder dialog to choose a new library location', async () => {
+        ipc.showOpenDialog.mockResolvedValueOnce({
+            canceled: false,
+            filePaths: ['/Users/player/Games'],
+        });
+
+        const result = await bridgeAPI.chooseLibraryFolder();
+
+        expect(ipc.showOpenDialog).toHaveBeenCalledWith(
+            ipc.window,
+            expect.objectContaining({
+                properties: ['openDirectory', 'createDirectory'],
+            })
+        );
+        expect(library.stageFolder).toHaveBeenCalledWith('/Users/player/Games');
+        expect(result).toEqual({
+            ok: true,
+            token: 'folder-token',
+            displayPath: '~/Games',
+        });
+    });
+
+    it('reports a cancelled folder dialog', async () => {
+        ipc.showOpenDialog.mockResolvedValueOnce({
+            canceled: true,
+            filePaths: [],
+        });
+
+        await expect(bridgeAPI.chooseLibraryFolder()).resolves.toEqual({
+            ok: false,
+            reason: 'cancelled',
+        });
+        expect(library.stageFolder).not.toHaveBeenCalled();
+    });
+
+    it('moves the library by token and streams the progress', async () => {
+        const progress = vi.fn();
+        const stopListening = bridgeAPI.onLibraryMoveProgress(progress);
+
+        const result = await bridgeAPI.moveLibrary('folder-token');
+        stopListening();
+        await bridgeAPI.moveLibrary('folder-token');
+
+        expect(library.moveTo).toHaveBeenCalledWith(
+            'folder-token',
+            expect.any(Function)
+        );
+        expect(result).toMatchObject({ ok: true });
+        // Two updates from the first move only: the listener was removed
+        expect(progress.mock.calls).toEqual([
+            [{ done: 1, total: 2 }],
+            [{ done: 2, total: 2 }],
+        ]);
+    });
+
     it('only sends on channels that have a handler', async () => {
         ipc.sentChannels.clear();
         ipc.showOpenDialog.mockResolvedValue({ canceled: true, filePaths: [] });
@@ -283,6 +384,8 @@ describe('preload bridge <-> main process', () => {
             stageDroppedFile: [new File(['x'], 'Tetris.gb')],
             chooseImportFile: ['rom'],
             importGame: ['token'],
+            moveLibrary: ['token'],
+            onLibraryMoveProgress: [() => undefined],
         };
         const callEveryBridgeFunction = async () => {
             for (const [name, value] of Object.entries(bridgeAPI)) {

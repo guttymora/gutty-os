@@ -20,6 +20,9 @@ describe('App', () => {
             toggleMaximizeWindow: vi.fn(),
             closeWindow: vi.fn(),
             getGames: vi.fn().mockResolvedValue(MOCK_GAMES),
+            getLibraryLocation: vi
+                .fn()
+                .mockResolvedValue({ displayPath: '~/gutty-os' }),
         });
     });
 

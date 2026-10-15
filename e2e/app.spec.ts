@@ -136,6 +136,37 @@ test.describe('adding a game', () => {
     });
 });
 
+test.describe('library folder', () => {
+    test('moves the library to an empty folder from Options', async () => {
+        const { app, window } = launched;
+        await skipSplash(window);
+        const newFolder = path.join(userDataDir, 'New Library');
+        mkdirSync(newFolder);
+        await app.evaluate(({ dialog }, folder) => {
+            dialog.showOpenDialog = async () => ({
+                canceled: false,
+                filePaths: [folder],
+            });
+        }, newFolder);
+
+        await window.keyboard.press('Tab');
+        await window.getByRole('button', { name: 'Change…' }).click();
+        await window.getByRole('button', { name: 'Move my library' }).click();
+
+        await expect(window.getByRole('status')).toHaveText('Library moved');
+        await expect(window.getByText(newFolder)).toBeVisible();
+        expect(existsSync(path.join(newFolder, 'library.json'))).toBe(true);
+        expect(existsSync(getTestLibraryPath(userDataDir))).toBe(false);
+        // The games are still listed, now read from the new folder
+        await window.keyboard.press('Escape');
+        await expect(
+            window
+                .getByRole('region', { name: 'Games' })
+                .getByRole('button', { name: /Super Mario Land/ })
+        ).toBeVisible();
+    });
+});
+
 test.describe('library', () => {
     test('filters by platform and shows the selected game', async () => {
         const { window } = launched;

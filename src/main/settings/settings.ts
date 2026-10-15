@@ -60,3 +60,6 @@ export const loadSettings = async (
             : defaults.libraryPath,
     };
 };
+
+export const saveSettings = (userDataDir: string, settings: Settings) =>
+    writeJsonAtomic(path.join(userDataDir, SETTINGS_FILE_NAME), settings);
