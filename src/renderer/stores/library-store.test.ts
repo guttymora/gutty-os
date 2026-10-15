@@ -41,4 +41,17 @@ describe('useLibraryStore', () => {
             games: [],
         });
     });
+
+    it('adds a game, replacing it if it is already listed', () => {
+        const [first, second] = MOCK_GAMES;
+        useLibraryStore.setState({ status: 'ready', games: [first] });
+
+        useLibraryStore.getState().addGame(second);
+        useLibraryStore.getState().addGame({ ...first, rating: 1 });
+
+        expect(useLibraryStore.getState().games).toEqual([
+            second,
+            { ...first, rating: 1 },
+        ]);
+    });
 });

@@ -17,6 +17,7 @@ export const App = () => {
     const hideSplash = useCallback(() => setShowSplash(false), []);
     const isOptionsOpen = useUiStore((state) => state.isOptionsOpen);
     const openOptions = useUiStore((state) => state.openOptions);
+    const isAddGameOpen = useUiStore((state) => state.isAddGameOpen);
     const games = useLibraryStore((state) => state.games);
     const libraryStatus = useLibraryStore((state) => state.status);
     const loadGames = useLibraryStore((state) => state.loadGames);
@@ -25,11 +26,23 @@ export const App = () => {
         void loadGames();
     }, [loadGames]);
 
-    // Tab opens options once the splash is gone and no panel is open
+    // Files dropped outside a drop zone would make the window open them
+    useEffect(() => {
+        const preventFileDrop = (event: DragEvent) => event.preventDefault();
+        window.addEventListener('dragover', preventFileDrop);
+        window.addEventListener('drop', preventFileDrop);
+
+        return () => {
+            window.removeEventListener('dragover', preventFileDrop);
+            window.removeEventListener('drop', preventFileDrop);
+        };
+    }, []);
+
+    // Tab opens options once the splash is gone and no dialog is open
     useKeyPress(
         CONTROLS.options.keys,
         openOptions,
-        !showSplash && !isOptionsOpen
+        !showSplash && !isOptionsOpen && !isAddGameOpen
     );
 
     return (

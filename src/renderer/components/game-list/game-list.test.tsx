@@ -66,4 +66,16 @@ describe('GameList', () => {
 
         expect(screen.getByText('No games yet')).toBeInTheDocument();
     });
+
+    it('starts with an "Add a game" item', async () => {
+        const onAddGame = vi.fn();
+        render(
+            <GameList games={games} onSelect={vi.fn()} onAddGame={onAddGame} />
+        );
+        const [first] = screen.getAllByRole('button');
+
+        expect(first).toHaveTextContent('Add a game');
+        await userEvent.click(first);
+        expect(onAddGame).toHaveBeenCalledOnce();
+    });
 });

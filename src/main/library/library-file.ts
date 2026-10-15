@@ -132,17 +132,20 @@ export const loadLibrary = async (root: string): Promise<LibraryData> => {
     return { version: LIBRARY_VERSION, games };
 };
 
-/** What the renderer gets: no file paths, missing games left out */
+/** What the renderer gets for one game: no file paths */
+export const toGame = (id: string, record: LibraryRecord): Game => ({
+    id,
+    title: record.title,
+    platform: record.platform,
+    rating: record.rating,
+    playTimeMinutes: record.playTimeMinutes,
+    isFavorite: record.isFavorite,
+    addedAt: record.addedAt,
+    lastPlayedAt: record.lastPlayedAt,
+});
+
+/** The games the renderer shows: missing games are left out */
 export const toGames = (library: LibraryData): Game[] =>
     Object.entries(library.games)
         .filter(([, record]) => !record.missing)
-        .map(([id, record]) => ({
-            id,
-            title: record.title,
-            platform: record.platform,
-            rating: record.rating,
-            playTimeMinutes: record.playTimeMinutes,
-            isFavorite: record.isFavorite,
-            addedAt: record.addedAt,
-            lastPlayedAt: record.lastPlayedAt,
-        }));
+        .map(([id, record]) => toGame(id, record));

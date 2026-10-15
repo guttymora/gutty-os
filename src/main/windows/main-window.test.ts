@@ -13,6 +13,10 @@ const { FakeBrowserWindow } = vi.hoisted(() => {
         show = vi.fn();
         loadURL = vi.fn();
         loadFile = vi.fn();
+        webContents = {
+            on: vi.fn(),
+            getURL: vi.fn(() => 'app://gutty-os/index.html'),
+        };
         once = vi.fn((event: string, listener: () => void) => {
             if (event === 'ready-to-show') {
                 this.readyToShow = listener;
@@ -92,5 +96,24 @@ describe('createMainWindow', () => {
         expect(window.loadFile).toHaveBeenCalledWith(
             path.join(__dirname, '../renderer/main_window/index.html')
         );
+    });
+
+    it('blocks navigating away from the app', () => {
+        const window = createWindow({});
+        const [, onWillNavigate] = window.webContents.on.mock.calls.find(
+            ([event]) => event === 'will-navigate'
+        ) as [
+            string,
+            (event: { preventDefault: () => void }, url: string) => void,
+        ];
+        const navigation = (url: string) => {
+            const event = { preventDefault: vi.fn() };
+            onWillNavigate(event, url);
+            return event.preventDefault;
+        };
+
+        expect(navigation('file:///Users/player/Tetris.gb')).toHaveBeenCalled();
+        // Reloading the app itself (e.g. dev hot reload) is still allowed
+        expect(navigation('app://gutty-os/index.html')).not.toHaveBeenCalled();
     });
 });

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
@@ -84,6 +84,55 @@ test.describe('game library folder', () => {
                 )
             )
             .toEqual([]);
+    });
+});
+
+test.describe('adding a game', () => {
+    test('moves a chosen ROM and its save into the library', async () => {
+        const { app, window } = launched;
+        await skipSplash(window);
+        const downloads = path.join(userDataDir, 'Downloads');
+        mkdirSync(downloads);
+        const romPath = path.join(downloads, 'Homebrew Quest.gb');
+        writeFileSync(romPath, 'homebrew-rom-bytes');
+        writeFileSync(path.join(downloads, 'Homebrew Quest.sav'), 'progress');
+        // Answer the native file dialog with the ROM
+        await app.evaluate(({ dialog }, filePath) => {
+            dialog.showOpenDialog = async () => ({
+                canceled: false,
+                filePaths: [filePath],
+            });
+        }, romPath);
+
+        await window.getByRole('button', { name: /Add a game/ }).click();
+        await window.getByRole('button', { name: 'Choose ROM' }).click();
+        // The save next to the ROM is picked up automatically
+        await expect(window.getByText('Homebrew Quest.sav')).toBeVisible();
+        await window.getByRole('button', { name: 'Add game' }).click();
+
+        // The dialog closes and the new game is selected
+        await expect(
+            window.getByRole('dialog', { name: 'Add a game' })
+        ).toBeHidden();
+        await expect(
+            window
+                .getByRole('region', { name: 'Game details' })
+                .getByRole('heading')
+        ).toHaveText('Homebrew Quest');
+        const library = getTestLibraryPath(userDataDir);
+        expect(existsSync(romPath)).toBe(false);
+        expect(
+            readFileSync(
+                path.join(library, 'roms/gb/Homebrew Quest.gb'),
+                'utf8'
+            )
+        ).toBe('homebrew-rom-bytes');
+        expect(
+            readFileSync(
+                path.join(library, 'saves/gb/Homebrew Quest.sav'),
+                'utf8'
+            )
+        ).toBe('progress');
     });
 });
 

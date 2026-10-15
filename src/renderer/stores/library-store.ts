@@ -8,6 +8,8 @@ type LibraryState = {
     status: LibraryStatus;
     games: Game[];
     loadGames: () => Promise<void>;
+    /** Adds a game, or replaces it if it is already in the list */
+    addGame: (game: Game) => void;
 };
 
 export const useLibraryStore = create<LibraryState>()((set) => ({
@@ -23,4 +25,8 @@ export const useLibraryStore = create<LibraryState>()((set) => ({
             set({ games: [], status: 'error' });
         }
     },
+    addGame: (game) =>
+        set(({ games }) => ({
+            games: [...games.filter(({ id }) => id !== game.id), game],
+        })),
 }));

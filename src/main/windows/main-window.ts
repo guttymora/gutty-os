@@ -21,6 +21,12 @@ export const createMainWindow = () => {
 
     mainWindow.setAspectRatio(ASPECT_RATIO);
     mainWindow.once('ready-to-show', () => mainWindow.show());
+    // Never navigate away from the app (e.g. to a file dropped on the window)
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        if (url !== mainWindow.webContents.getURL()) {
+            event.preventDefault();
+        }
+    });
 
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
         mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);

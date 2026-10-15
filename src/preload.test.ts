@@ -1,4 +1,9 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 import {
+    afterAll,
     afterEach,
     beforeAll,
     beforeEach,
@@ -9,8 +14,10 @@ import {
 } from 'vitest';
 
 import type { Game } from '@shared/game';
+import type { ImportResult } from '@shared/import';
 import { IpcChannels } from '@shared/ipc-channels';
 
+import type { LibraryService } from './main/library/library-service';
 import type { BridgeAPI } from './preload';
 
 /**
@@ -33,8 +40,19 @@ const ipc = vi.hoisted(() => {
         unmaximize: vi.fn(),
     };
     const sender = { id: 1 };
+    // What webUtils.getPathForFile returns for a dropped File
+    const dropped = { path: '' };
+    const showOpenDialog = vi.fn();
 
-    return { handlers, sentChannels, exposed, window, sender };
+    return {
+        handlers,
+        sentChannels,
+        exposed,
+        window,
+        sender,
+        dropped,
+        showOpenDialog,
+    };
 });
 
 const callHandler = (channel: string, args: unknown[]) => {
@@ -70,6 +88,8 @@ vi.mock('electron', () => ({
         fromWebContents: (sender: unknown) =>
             sender === ipc.sender ? ipc.window : null,
     },
+    webUtils: { getPathForFile: () => ipc.dropped.path },
+    dialog: { showOpenDialog: ipc.showOpenDialog },
 }));
 
 const ORIGINAL_PLATFORM = process.platform;
@@ -89,17 +109,36 @@ const LIBRARY: Game[] = [
     },
 ];
 
+const ADDED: ImportResult = { status: 'added', game: LIBRARY[0], warnings: [] };
+
 describe('preload bridge <-> main process', () => {
     let bridgeAPI: BridgeAPI;
+    let sandbox: string;
+    let romPath: string;
+    const library = { importGame: vi.fn(async () => ADDED) };
 
     beforeAll(async () => {
+        sandbox = await mkdtemp(path.join(tmpdir(), 'gutty-os-test-'));
+        romPath = path.join(sandbox, 'Tetris.gb');
+        await writeFile(romPath, 'rom-bytes');
+
         const { registerWindowControls } =
             await import('./main/ipc/window-controls');
         const { registerLibraryIpc } = await import('./main/ipc/library');
+        const { registerImportIpc } = await import('./main/ipc/import');
+        const { ImportStaging } = await import('./main/library/import-staging');
         registerWindowControls();
         registerLibraryIpc(() => LIBRARY);
+        registerImportIpc({
+            staging: new ImportStaging(),
+            getLibrary: () => library as unknown as LibraryService,
+        });
         await import('./preload');
         bridgeAPI = ipc.exposed.bridgeAPI as BridgeAPI;
+    });
+
+    afterAll(async () => {
+        await rm(sandbox, { recursive: true, force: true });
     });
 
     beforeEach(() => {
@@ -155,18 +194,108 @@ describe('preload bridge <-> main process', () => {
         await expect(bridgeAPI.getGames()).resolves.toEqual(LIBRARY);
     });
 
+    it('stages a dropped file without exposing its path', async () => {
+        ipc.dropped.path = romPath;
+
+        const result = await bridgeAPI.stageDroppedFile(
+            new File(['rom-bytes'], 'Tetris.gb')
+        );
+
+        expect(result).toMatchObject({
+            ok: true,
+            file: { name: 'Tetris.gb', kind: 'rom', platform: 'gb' },
+        });
+        expect(JSON.stringify(result)).not.toContain(sandbox);
+    });
+
+    it('rejects a dropped file that is not on disk', async () => {
+        ipc.dropped.path = '';
+
+        await expect(
+            bridgeAPI.stageDroppedFile(new File(['x'], 'evil.gba'))
+        ).resolves.toEqual({ ok: false, reason: 'not-a-file' });
+    });
+
+    it('opens the file dialog for one ROM of the chosen platform', async () => {
+        ipc.showOpenDialog.mockResolvedValueOnce({
+            canceled: false,
+            filePaths: [romPath],
+        });
+
+        const result = await bridgeAPI.chooseImportFile('rom', 'gb');
+
+        expect(ipc.showOpenDialog).toHaveBeenCalledWith(ipc.window, {
+            properties: ['openFile'],
+            filters: [{ name: 'Game Boy ROMs', extensions: ['gb'] }],
+        });
+        expect(result).toMatchObject({ ok: true, file: { name: 'Tetris.gb' } });
+    });
+
+    it('reports a cancelled file dialog', async () => {
+        ipc.showOpenDialog.mockResolvedValueOnce({
+            canceled: true,
+            filePaths: [],
+        });
+
+        await expect(bridgeAPI.chooseImportFile('save')).resolves.toEqual({
+            ok: false,
+            reason: 'cancelled',
+        });
+    });
+
+    it('imports a staged ROM by token, once', async () => {
+        ipc.dropped.path = romPath;
+        const staged = await bridgeAPI.stageDroppedFile(
+            new File(['rom-bytes'], 'Tetris.gb')
+        );
+        if (!staged.ok) {
+            throw new Error('expected the ROM to be staged');
+        }
+
+        await expect(bridgeAPI.importGame(staged.file.token)).resolves.toEqual(
+            ADDED
+        );
+        expect(library.importGame).toHaveBeenCalledWith(
+            { path: romPath, kind: 'rom', platform: 'gb' },
+            undefined
+        );
+
+        // The token is spent after a successful import
+        await expect(bridgeAPI.importGame(staged.file.token)).resolves.toEqual({
+            status: 'error',
+            reason: 'file-not-found',
+        });
+    });
+
+    it('refuses to import with an unknown token', async () => {
+        await expect(bridgeAPI.importGame('made-up-token')).resolves.toEqual({
+            status: 'error',
+            reason: 'file-not-found',
+        });
+        expect(library.importGame).not.toHaveBeenCalled();
+    });
+
     it('only sends on channels that have a handler', async () => {
         ipc.sentChannels.clear();
+        ipc.showOpenDialog.mockResolvedValue({ canceled: true, filePaths: [] });
+        // Example arguments for the bridge functions that need them
+        const exampleArgs: Partial<Record<keyof BridgeAPI, unknown[]>> = {
+            stageDroppedFile: [new File(['x'], 'Tetris.gb')],
+            chooseImportFile: ['rom'],
+            importGame: ['token'],
+        };
         const callEveryBridgeFunction = async () => {
-            for (const value of Object.values(bridgeAPI)) {
+            for (const [name, value] of Object.entries(bridgeAPI)) {
                 if (typeof value === 'function') {
-                    await value();
+                    await (value as (...args: unknown[]) => unknown)(
+                        ...(exampleArgs[name as keyof BridgeAPI] ?? [])
+                    );
                 }
             }
         };
 
         // The IPC mock throws when a channel has no handler
         await expect(callEveryBridgeFunction()).resolves.toBeUndefined();
-        expect(ipc.sentChannels.size).toBeGreaterThan(0);
+        expect(ipc.sentChannels.size).toBe(Object.values(IpcChannels).length);
     });
 });

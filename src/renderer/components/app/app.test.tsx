@@ -87,4 +87,16 @@ describe('App', () => {
             screen.getByRole('button', { name: /Super Mario Land/ })
         ).toBeInTheDocument();
     });
+
+    it('keeps files dropped outside a drop zone from opening', () => {
+        render(<App />);
+        const dropEvent = new Event('drop', { cancelable: true });
+        const dragOverEvent = new Event('dragover', { cancelable: true });
+
+        window.dispatchEvent(dragOverEvent);
+        window.dispatchEvent(dropEvent);
+
+        expect(dragOverEvent.defaultPrevented).toBe(true);
+        expect(dropEvent.defaultPrevented).toBe(true);
+    });
 });
