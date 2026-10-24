@@ -12,7 +12,7 @@ const games: Game[] = [
         id: 'tetris',
         title: 'Tetris',
         platform: 'gb',
-        romPath: '/roms/Tetris.gb',
+        addedAt: '2026-10-01T10:00:00.000Z',
         rating: 4,
         playTimeMinutes: 0,
         isFavorite: false,
@@ -21,7 +21,7 @@ const games: Game[] = [
         id: 'golden-sun',
         title: 'Golden Sun',
         platform: 'gba',
-        romPath: '/roms/Golden Sun.gba',
+        addedAt: '2026-10-01T10:00:00.000Z',
         rating: 5,
         playTimeMinutes: 0,
         isFavorite: true,
@@ -65,5 +65,17 @@ describe('GameList', () => {
         render(<GameList games={[]} onSelect={vi.fn()} />);
 
         expect(screen.getByText('No games yet')).toBeInTheDocument();
+    });
+
+    it('starts with an "Add a game" item', async () => {
+        const onAddGame = vi.fn();
+        render(
+            <GameList games={games} onSelect={vi.fn()} onAddGame={onAddGame} />
+        );
+        const [first] = screen.getAllByRole('button');
+
+        expect(first).toHaveTextContent('Add a game');
+        await userEvent.click(first);
+        expect(onAddGame).toHaveBeenCalledOnce();
     });
 });

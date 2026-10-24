@@ -1,7 +1,11 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
 import { expect, test } from '@playwright/test';
 
 import {
     createUserDataDir,
+    getTestLibraryPath,
     launchApp,
     type LaunchedApp,
     removeUserDataDir,
@@ -66,6 +70,103 @@ test.describe('window', () => {
     });
 });
 
+test.describe('game library folder', () => {
+    test('creates the library folders on first launch', async () => {
+        const library = getTestLibraryPath(userDataDir);
+
+        await expect
+            .poll(() =>
+                ['roms', 'saves', 'states'].flatMap((kind) =>
+                    ['gb', 'gbc', 'gba'].filter(
+                        (platform) =>
+                            !existsSync(path.join(library, kind, platform))
+                    )
+                )
+            )
+            .toEqual([]);
+    });
+});
+
+test.describe('adding a game', () => {
+    test('moves a chosen ROM and its save into the library', async () => {
+        const { app, window } = launched;
+        await skipSplash(window);
+        const downloads = path.join(userDataDir, 'Downloads');
+        mkdirSync(downloads);
+        const romPath = path.join(downloads, 'Homebrew Quest.gb');
+        writeFileSync(romPath, 'homebrew-rom-bytes');
+        writeFileSync(path.join(downloads, 'Homebrew Quest.sav'), 'progress');
+        // Answer the native file dialog with the ROM
+        await app.evaluate(({ dialog }, filePath) => {
+            dialog.showOpenDialog = async () => ({
+                canceled: false,
+                filePaths: [filePath],
+            });
+        }, romPath);
+
+        await window.getByRole('button', { name: /Add a game/ }).click();
+        await window.getByRole('button', { name: 'Choose ROM' }).click();
+        // The save next to the ROM is picked up automatically
+        await expect(window.getByText('Homebrew Quest.sav')).toBeVisible();
+        await window.getByRole('button', { name: 'Add game' }).click();
+
+        // The dialog closes and the new game is selected
+        await expect(
+            window.getByRole('dialog', { name: 'Add a game' })
+        ).toBeHidden();
+        await expect(
+            window
+                .getByRole('region', { name: 'Game details' })
+                .getByRole('heading')
+        ).toHaveText('Homebrew Quest');
+        const library = getTestLibraryPath(userDataDir);
+        expect(existsSync(romPath)).toBe(false);
+        expect(
+            readFileSync(
+                path.join(library, 'roms/gb/Homebrew Quest.gb'),
+                'utf8'
+            )
+        ).toBe('homebrew-rom-bytes');
+        expect(
+            readFileSync(
+                path.join(library, 'saves/gb/Homebrew Quest.sav'),
+                'utf8'
+            )
+        ).toBe('progress');
+    });
+});
+
+test.describe('library folder', () => {
+    test('moves the library to an empty folder from Options', async () => {
+        const { app, window } = launched;
+        await skipSplash(window);
+        const newFolder = path.join(userDataDir, 'New Library');
+        mkdirSync(newFolder);
+        await app.evaluate(({ dialog }, folder) => {
+            dialog.showOpenDialog = async () => ({
+                canceled: false,
+                filePaths: [folder],
+            });
+        }, newFolder);
+
+        await window.keyboard.press('Tab');
+        await window.getByRole('button', { name: 'Change…' }).click();
+        await window.getByRole('button', { name: 'Move my library' }).click();
+
+        await expect(window.getByRole('status')).toHaveText('Library moved');
+        await expect(window.getByText(newFolder)).toBeVisible();
+        expect(existsSync(path.join(newFolder, 'library.json'))).toBe(true);
+        expect(existsSync(getTestLibraryPath(userDataDir))).toBe(false);
+        // The games are still listed, now read from the new folder
+        await window.keyboard.press('Escape');
+        await expect(
+            window
+                .getByRole('region', { name: 'Games' })
+                .getByRole('button', { name: /Super Mario Land/ })
+        ).toBeVisible();
+    });
+});
+
 test.describe('library', () => {
     test('filters by platform and shows the selected game', async () => {
         const { window } = launched;
@@ -78,7 +179,10 @@ test.describe('library', () => {
             .getByRole('button', { name: 'GB Color' })
             .click();
 
-        await expect(games.getByRole('button')).toHaveCount(3);
+        // Game rows only, not the "Add a game" item at the top
+        await expect(
+            games.getByRole('button').filter({ hasNotText: 'Add a game' })
+        ).toHaveCount(3);
         await expect(details.getByRole('heading')).toHaveText(
             'Pokémon Crystal'
         );

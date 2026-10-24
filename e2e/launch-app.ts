@@ -1,4 +1,11 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import {
+    mkdirSync,
+    mkdtempSync,
+    rmSync,
+    statSync,
+    writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -8,6 +15,8 @@ import {
     type Page,
 } from '@playwright/test';
 
+import { MOCK_GAMES } from '../src/renderer/data/mock-games';
+
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 
 export type LaunchedApp = {
@@ -15,9 +24,69 @@ export type LaunchedApp = {
     window: Page;
 };
 
-/** A throwaway userData folder so tests never touch the real app settings */
-export const createUserDataDir = () =>
-    mkdtempSync(path.join(tmpdir(), 'gutty-os-e2e-'));
+/** Game library used by the tests, inside the throwaway userData folder */
+export const getTestLibraryPath = (userDataDir: string) =>
+    path.join(userDataDir, 'library');
+
+/**
+ * A throwaway userData folder so tests never touch the real app settings.
+ * Its settings.json points the game library inside it, so tests never
+ * create ~/gutty-os either.
+ */
+export const createUserDataDir = () => {
+    const userDataDir = mkdtempSync(path.join(tmpdir(), 'gutty-os-e2e-'));
+    writeFileSync(
+        path.join(userDataDir, 'settings.json'),
+        JSON.stringify({
+            version: 1,
+            libraryPath: getTestLibraryPath(userDataDir),
+        })
+    );
+
+    seedLibrary(getTestLibraryPath(userDataDir));
+
+    return userDataDir;
+};
+
+/**
+ * Writes a small fake ROM per sample game plus a matching library.json, so the
+ * startup rescan finds every game on disk and the UI has games to show.
+ */
+const seedLibrary = (libraryPath: string) => {
+    const games = Object.fromEntries(
+        MOCK_GAMES.map((game) => {
+            const contents = `sample rom: ${game.title}`;
+            // ":" isn't allowed in Finder file names
+            const fileName = `${game.title.replace(/:/g, ' -')}.${game.platform}`;
+            const file = `roms/${game.platform}/${fileName}`;
+            const romPath = path.join(libraryPath, file);
+            mkdirSync(path.dirname(romPath), { recursive: true });
+            writeFileSync(romPath, contents);
+            const stats = statSync(romPath);
+
+            return [
+                createHash('sha1').update(contents).digest('hex'),
+                {
+                    platform: game.platform,
+                    file,
+                    title: game.title,
+                    addedAt: game.addedAt,
+                    size: stats.size,
+                    modifiedAt: stats.mtime.toISOString(),
+                    lastPlayedAt: game.lastPlayedAt,
+                    playTimeMinutes: game.playTimeMinutes,
+                    isFavorite: game.isFavorite,
+                    rating: game.rating,
+                    missing: false,
+                },
+            ];
+        })
+    );
+    writeFileSync(
+        path.join(libraryPath, 'library.json'),
+        JSON.stringify({ version: 1, games })
+    );
+};
 
 export const removeUserDataDir = (dir: string) =>
     rmSync(dir, { recursive: true, force: true });

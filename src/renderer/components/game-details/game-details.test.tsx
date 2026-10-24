@@ -10,7 +10,7 @@ const game: Game = {
     id: 'super-mario-land',
     title: 'Super Mario Land',
     platform: 'gb',
-    romPath: '/roms/Super Mario Land.gb',
+    addedAt: '2026-10-01T10:00:00.000Z',
     releaseYear: 1989,
     rating: 3,
     playTimeMinutes: 252,
@@ -37,11 +37,13 @@ describe('GameDetails', () => {
 
     it('uses the cover image when the game has one', () => {
         render(
-            <GameDetails game={{ ...game, coverPath: '/covers/sml.png' }} />
+            <GameDetails
+                game={{ ...game, coverUrl: 'gutty://cover/super-mario-land' }}
+            />
         );
 
         expect(
             screen.getByRole('img', { name: 'Super Mario Land cover' })
-        ).toHaveAttribute('src', '/covers/sml.png');
+        ).toHaveAttribute('src', 'gutty://cover/super-mario-land');
     });
 });
