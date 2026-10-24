@@ -39,17 +39,27 @@ test.describe('window', () => {
             )
             .toBe(true);
 
-        const bounds = await app.evaluate(({ BrowserWindow }) => {
+        const bounds = await app.evaluate(({ BrowserWindow, screen }) => {
             const window = BrowserWindow.getAllWindows()[0];
 
             return {
                 size: window.getSize(),
                 contentSize: window.getContentSize(),
                 minimumSize: window.getMinimumSize(),
+                workArea: screen.getPrimaryDisplay().workAreaSize,
             };
         });
 
-        expect(bounds.contentSize).toEqual([960, 720]);
+        const [width, height] = bounds.contentSize;
+        if (bounds.workArea.width >= 960 && bounds.workArea.height >= 720) {
+            expect(bounds.contentSize).toEqual([960, 720]);
+        } else {
+            // Small screens (e.g. CI runners): macOS shrinks the window to
+            // fit, keeping the 4:3 ratio
+            expect(width).toBeLessThanOrEqual(bounds.workArea.width);
+            expect(height).toBeLessThanOrEqual(bounds.workArea.height);
+            expect(width / height).toBeCloseTo(4 / 3, 2);
+        }
         // Frameless: no native title bar, so the window is all content
         expect(bounds.size).toEqual(bounds.contentSize);
         expect(bounds.minimumSize).toEqual([640, 480]);

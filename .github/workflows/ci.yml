@@ -37,7 +37,7 @@ jobs:
             - run: pnpm run test:coverage
 
     e2e:
-        name: Packaged app and E2E (macOS)
+        name: E2E MacOS
         needs: checks
         runs-on: macos-latest
         timeout-minutes: 15
