@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
+import type { Game } from '@shared/game';
 import type { ImportResult } from '@shared/import';
+import type { LaunchResult } from '@shared/launch';
 import type {
     ChooseFolderResult,
     LibraryLocation,
@@ -9,6 +11,8 @@ import type {
     MoveLibraryResult,
 } from '@shared/library-location';
 
+import { getLaunchCommand } from '../emulator/emulators';
+import { GameSession } from '../emulator/game-session';
 import { saveSettings, type Settings } from '../settings/settings';
 
 import type { StagedEntry } from './import-staging';
@@ -24,8 +28,8 @@ export const toDisplayPath = (folder: string, homeDir: string) =>
         : folder;
 
 /**
- * Owns the settings and the active library. Moving the library and importing
- * a game never run at the same time.
+ * Owns the settings and the active library. Moving the library never runs
+ * at the same time as an import or a game being played.
  */
 export class LibraryManager {
     private moving = false;
@@ -36,17 +40,23 @@ export class LibraryManager {
         private readonly userDataDir: string,
         private readonly homeDir: string,
         private settings: Settings,
-        private library: LibraryService
+        private library: LibraryService,
+        private readonly session: GameSession
     ) {}
 
-    static async start(userDataDir: string, homeDir: string) {
+    static async start(
+        userDataDir: string,
+        homeDir: string,
+        session = new GameSession()
+    ) {
         const { settings, folders } = await initLibrary(userDataDir, homeDir);
 
         return new LibraryManager(
             userDataDir,
             homeDir,
             settings,
-            await LibraryService.open(folders)
+            await LibraryService.open(folders),
+            session
         );
     }
 
@@ -65,6 +75,39 @@ export class LibraryManager {
             return Promise.resolve({ status: 'error', reason: 'busy' });
         }
         return this.library.importGame(rom, save);
+    }
+
+    /**
+     * Starts the game in its emulator. Once the emulator quits, `onExit` gets
+     * the game with its stats updated (undefined if they couldn't be saved).
+     */
+    launchGame(
+        id: string,
+        onExit: (game: Game | undefined) => void
+    ): Promise<LaunchResult> {
+        if (this.moving) {
+            return Promise.resolve({ ok: false, reason: 'busy' });
+        }
+        const files = this.library.getPlayFiles(id);
+        if (!files) {
+            return Promise.resolve({ ok: false, reason: 'game-not-found' });
+        }
+        const command = getLaunchCommand(files.platform, {
+            settings: this.settings,
+            romPath: files.romPath,
+            savesDir: files.savesDir,
+            statesDir: files.statesDir,
+            baseEnv: process.env,
+        });
+        // The library can't move while playing, so this is still the same one
+        const library = this.library;
+
+        return this.session.start(id, command, ({ startedAt, endedAt }) => {
+            library.recordPlay(id, startedAt, endedAt).then(onExit, (error) => {
+                console.error('Could not save the play time:', error);
+                onExit(undefined);
+            });
+        });
     }
 
     /** Validates a folder picked as the new location and hands out a token */
@@ -97,7 +140,7 @@ export class LibraryManager {
         if (!destination) {
             return { ok: false, reason: 'folder-not-found' };
         }
-        if (this.moving || this.library.isImporting) {
+        if (this.moving || this.library.isImporting || this.session.isRunning) {
             return { ok: false, reason: 'busy' };
         }
         // Take the lock before anything async, so no import can sneak in

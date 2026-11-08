@@ -7,6 +7,7 @@ export enum IpcChannels {
     LIBRARY_GET_LOCATION = 'library:get-location',
     LIBRARY_CHOOSE_FOLDER = 'library:choose-folder',
     LIBRARY_MOVE = 'library:move',
+    GAME_LAUNCH = 'game:launch',
     IMPORT_STAGE_FILE = 'import:stage-file',
     IMPORT_CHOOSE_FILE = 'import:choose-file',
     IMPORT_GAME = 'import:game',
@@ -15,4 +16,6 @@ export enum IpcChannels {
 /** Messages the main process sends to the renderer */
 export enum IpcEvents {
     LIBRARY_MOVE_PROGRESS = 'library:move-progress',
+    /** The emulator quit; carries the game with its stats updated */
+    GAME_EXITED = 'game:exited',
 }

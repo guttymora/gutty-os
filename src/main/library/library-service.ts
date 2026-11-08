@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import type { Game } from '@shared/game';
 import type { ImportResult } from '@shared/import';
 
@@ -7,6 +9,7 @@ import {
     type LibraryData,
     loadLibrary,
     saveLibrary,
+    toGame,
     toGames,
 } from './library-file';
 import type { LibraryFolders } from './library-folders';
@@ -77,6 +80,49 @@ export class LibraryService {
 
     getGames(): Game[] {
         return toGames(this.library);
+    }
+
+    /** Where a game's ROM and its saves are; undefined if it can't be played */
+    getPlayFiles(id: string) {
+        const record = this.library.games[id];
+        if (!record || record.missing) {
+            return undefined;
+        }
+
+        return {
+            platform: record.platform,
+            romPath: path.join(this.folders.root, ...record.file.split('/')),
+            savesDir: this.folders.saves[record.platform],
+            statesDir: this.folders.states[record.platform],
+        };
+    }
+
+    /** Adds a finished session to the game's stats and saves library.json */
+    async recordPlay(
+        id: string,
+        startedAt: Date,
+        endedAt: Date
+    ): Promise<Game | undefined> {
+        const record = this.library.games[id];
+        if (!record) {
+            return undefined;
+        }
+        const minutes = Math.round(
+            Math.max(0, endedAt.getTime() - startedAt.getTime()) / 60_000
+        );
+        const updated = {
+            ...record,
+            lastPlayedAt: endedAt.toISOString(),
+            playTimeMinutes: record.playTimeMinutes + minutes,
+        };
+        const library = {
+            ...this.library,
+            games: { ...this.library.games, [id]: updated },
+        };
+        await saveLibrary(this.folders.root, library);
+        this.library = library;
+
+        return toGame(id, updated);
     }
 
     async importGame(

@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MOCK_GAMES } from '@data/mock-games';
+import { useLibraryStore } from '@stores/library-store';
 import { useUiStore } from '@stores/ui-store';
 
 import { LibraryScreen } from './library-screen';
@@ -176,6 +177,124 @@ describe('LibraryScreen', () => {
                     screen.getByRole('navigation', { name: 'Platforms' })
                 ).getByRole('button', { name: 'All Games' })
             ).toHaveAttribute('aria-current', 'true');
+        });
+    });
+
+    describe('playing', () => {
+        const advanceWars = MOCK_GAMES.find(
+            (game) => game.title === 'Advance Wars'
+        );
+        let launchGame: ReturnType<typeof vi.fn>;
+
+        beforeEach(() => {
+            useLibraryStore.setState({ playingId: undefined });
+            useUiStore.setState({ isAddGameOpen: false });
+            launchGame = vi.fn().mockResolvedValue({ ok: true });
+            vi.stubGlobal('bridgeAPI', { launchGame });
+        });
+
+        afterEach(() => {
+            vi.unstubAllGlobals();
+        });
+
+        it.each(['a', 'Enter'])(
+            'launches the selected game with %s',
+            async (key) => {
+                render(<LibraryScreen games={MOCK_GAMES} />);
+
+                fireEvent.keyDown(window, { key });
+
+                expect(launchGame).toHaveBeenCalledWith(advanceWars?.id);
+                expect(await screen.findByRole('status')).toHaveTextContent(
+                    'Playing Advance Wars'
+                );
+            }
+        );
+
+        it('launches with Enter on a focused game row', () => {
+            render(<LibraryScreen games={MOCK_GAMES} />);
+            const row = screen.getByRole('button', { name: /Advance Wars/ });
+            row.focus();
+
+            fireEvent.keyDown(row, { key: 'Enter' });
+
+            expect(launchGame).toHaveBeenCalledWith(advanceWars?.id);
+        });
+
+        it('lets Enter press another focused control instead of playing', () => {
+            render(<LibraryScreen games={MOCK_GAMES} />);
+            const addGame = screen.getByRole('button', { name: /Add a game/ });
+            addGame.focus();
+
+            const notCancelled = fireEvent.keyDown(addGame, { key: 'Enter' });
+
+            expect(launchGame).not.toHaveBeenCalled();
+            expect(notCancelled).toBe(true);
+        });
+
+        it('plays with A even when another control is focused', () => {
+            render(<LibraryScreen games={MOCK_GAMES} />);
+            const addGame = screen.getByRole('button', { name: /Add a game/ });
+            addGame.focus();
+
+            fireEvent.keyDown(addGame, { key: 'a' });
+
+            expect(launchGame).toHaveBeenCalledWith(advanceWars?.id);
+        });
+
+        it('launches from the A hint', async () => {
+            render(<LibraryScreen games={MOCK_GAMES} />);
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'APlay' })
+            );
+
+            expect(launchGame).toHaveBeenCalledWith(advanceWars?.id);
+        });
+
+        it('ignores A while a game runs', () => {
+            useLibraryStore.setState({ playingId: advanceWars?.id });
+            render(<LibraryScreen games={MOCK_GAMES} />);
+
+            fireEvent.keyDown(window, { key: 'a' });
+
+            expect(launchGame).not.toHaveBeenCalled();
+        });
+
+        it('ignores A while the library is covered', () => {
+            render(<LibraryScreen games={MOCK_GAMES} isActive={false} />);
+
+            fireEvent.keyDown(window, { key: 'a' });
+
+            expect(launchGame).not.toHaveBeenCalled();
+        });
+
+        it('ignores A when there is no game to play', () => {
+            render(<LibraryScreen games={[]} />);
+
+            fireEvent.keyDown(window, { key: 'a' });
+
+            expect(launchGame).not.toHaveBeenCalled();
+        });
+
+        it('explains why a game could not start until another is picked', async () => {
+            launchGame.mockResolvedValue({
+                ok: false,
+                reason: 'emulator-not-found',
+            });
+            render(<LibraryScreen games={MOCK_GAMES} />);
+
+            fireEvent.keyDown(window, { key: 'a' });
+
+            expect(await screen.findByRole('alert')).toHaveTextContent(
+                'mGBA was not found. Move it to Applications'
+            );
+            expect(screen.queryByRole('status')).toBeNull();
+
+            await userEvent.click(
+                screen.getByRole('button', { name: /Tetris/ })
+            );
+            expect(screen.queryByRole('alert')).toBeNull();
         });
     });
 });

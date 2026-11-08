@@ -73,6 +73,65 @@ describe('loadSettings', () => {
         expect(await readFile(settingsPath, 'utf8')).toBe('{broken json');
     });
 
+    it('defaults mGBA to /Applications with the controller fix', () => {
+        expect(getDefaultSettings(HOME).mgba).toEqual({
+            appPath: '/Applications/mGBA.app',
+            env: { SDL_JOYSTICK_MFI: '0' },
+        });
+    });
+
+    it('adds the emulator defaults to older settings, keeping the rest', async () => {
+        await writeFile(
+            settingsPath,
+            JSON.stringify({ version: 1, libraryPath: '/Users/player/Games' })
+        );
+
+        const settings = await loadSettings(userDataDir, HOME);
+
+        expect(settings.mgba).toEqual(getDefaultSettings(HOME).mgba);
+        expect(JSON.parse(await readFile(settingsPath, 'utf8'))).toEqual({
+            version: 1,
+            libraryPath: '/Users/player/Games',
+            mgba: getDefaultSettings(HOME).mgba,
+        });
+    });
+
+    it('uses the saved emulator settings, defaulting invalid values', async () => {
+        const saved = {
+            version: 1,
+            libraryPath: '/Users/player/Games',
+            mgba: { appPath: 'mGBA.app', env: {} },
+        };
+        await writeFile(settingsPath, JSON.stringify(saved));
+
+        const settings = await loadSettings(userDataDir, HOME);
+
+        expect(settings.mgba).toEqual({
+            appPath: '/Applications/mGBA.app',
+            env: {},
+        });
+        // Hand-edited values are left as they were
+        expect(JSON.parse(await readFile(settingsPath, 'utf8'))).toEqual(saved);
+    });
+
+    it('ignores an env with values other than strings', async () => {
+        await writeFile(
+            settingsPath,
+            JSON.stringify({
+                version: 1,
+                libraryPath: '/Users/player/Games',
+                mgba: { appPath: '/Games/mGBA.app', env: { DEBUG: 1 } },
+            })
+        );
+
+        const settings = await loadSettings(userDataDir, HOME);
+
+        expect(settings.mgba).toEqual({
+            appPath: '/Games/mGBA.app',
+            env: { SDL_JOYSTICK_MFI: '0' },
+        });
+    });
+
     it('reports read errors other than a missing file', async () => {
         // A folder where the file should be makes the read fail (EISDIR)
         await mkdir(settingsPath);

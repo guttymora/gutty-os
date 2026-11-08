@@ -46,6 +46,7 @@ export const GameList = ({
                     <button
                         type="button"
                         className={styles.row}
+                        data-game-id={game.id}
                         aria-current={
                             game.id === selectedId ? 'true' : undefined
                         }

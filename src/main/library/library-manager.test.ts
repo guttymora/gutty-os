@@ -12,6 +12,9 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { SessionEnd } from '../emulator/game-session';
+import { GameSession } from '../emulator/game-session';
+
 import { LibraryManager, toDisplayPath } from './library-manager';
 import { LibraryService } from './library-service';
 
@@ -215,5 +218,124 @@ describe('LibraryManager', () => {
         await importing;
 
         expect(moved).toEqual({ ok: false, reason: 'busy' });
+    });
+});
+
+describe('LibraryManager game launches', () => {
+    let sandbox: string;
+    let home: string;
+    let userData: string;
+    let manager: LibraryManager;
+    let session: GameSession;
+    let endSession: (end: SessionEnd) => void;
+    let gameId: string;
+
+    beforeEach(async () => {
+        sandbox = await mkdtemp(path.join(tmpdir(), 'gutty-os-test-'));
+        home = path.join(sandbox, 'home');
+        userData = path.join(sandbox, 'userData');
+        session = new GameSession();
+        vi.spyOn(session, 'start').mockImplementation(
+            async (_id, _command, onEnd) => {
+                endSession = onEnd;
+                return { ok: true };
+            }
+        );
+        // Lay out the library, add a ROM, then start for real
+        await LibraryManager.start(userData, home);
+        await writeFile(
+            path.join(home, 'gutty-os/roms/gba/Golden Sun.gba'),
+            'golden sun'
+        );
+        manager = await LibraryManager.start(userData, home, session);
+        [{ id: gameId }] = manager.getGames();
+    });
+
+    afterEach(async () => {
+        await rm(sandbox, { recursive: true, force: true });
+        vi.restoreAllMocks();
+    });
+
+    it('starts mGBA with the ROM, its saves folders and the controller fix', async () => {
+        expect(await manager.launchGame(gameId, vi.fn())).toEqual({
+            ok: true,
+        });
+
+        const library = path.join(home, 'gutty-os');
+        expect(session.start).toHaveBeenCalledWith(
+            gameId,
+            {
+                command: '/Applications/mGBA.app/Contents/MacOS/mGBA',
+                args: [
+                    '-C',
+                    `savegamePath=${path.join(library, 'saves/gba')}`,
+                    '-C',
+                    `savestatePath=${path.join(library, 'states/gba')}`,
+                    path.join(library, 'roms/gba/Golden Sun.gba'),
+                ],
+                env: expect.objectContaining({ SDL_JOYSTICK_MFI: '0' }),
+            },
+            expect.any(Function)
+        );
+    });
+
+    it('saves the play time and last played date when the game quits', async () => {
+        const onExit = vi.fn();
+        await manager.launchGame(gameId, onExit);
+
+        endSession({
+            gameId,
+            startedAt: new Date('2026-11-08T20:00:00.000Z'),
+            endedAt: new Date('2026-11-08T20:42:20.000Z'),
+        });
+        await vi.waitFor(() => expect(onExit).toHaveBeenCalled());
+
+        const stats = {
+            playTimeMinutes: 42,
+            lastPlayedAt: '2026-11-08T20:42:20.000Z',
+        };
+        expect(onExit).toHaveBeenCalledWith(expect.objectContaining(stats));
+        const saved = JSON.parse(
+            await readFile(path.join(home, 'gutty-os/library.json'), 'utf8')
+        );
+        expect(saved.games[gameId]).toMatchObject(stats);
+    });
+
+    it('refuses a game that is not in the library', async () => {
+        expect(await manager.launchGame('unknown', vi.fn())).toEqual({
+            ok: false,
+            reason: 'game-not-found',
+        });
+        expect(session.start).not.toHaveBeenCalled();
+    });
+
+    it('does not move the library while a game is running', async () => {
+        vi.spyOn(session, 'isRunning', 'get').mockReturnValue(true);
+        const folder = path.join(sandbox, 'Games');
+        await mkdir(folder);
+        const staged = await manager.stageFolder(folder);
+        if (!staged.ok) {
+            throw new Error('expected the folder to be accepted');
+        }
+
+        expect(await manager.moveTo(staged.token)).toEqual({
+            ok: false,
+            reason: 'busy',
+        });
+    });
+
+    it('does not start a game while the library is moving', async () => {
+        const folder = path.join(sandbox, 'Games');
+        await mkdir(folder);
+        const staged = await manager.stageFolder(folder);
+        if (!staged.ok) {
+            throw new Error('expected the folder to be accepted');
+        }
+
+        const moving = manager.moveTo(staged.token);
+        const launched = await manager.launchGame(gameId, vi.fn());
+        await moving;
+
+        expect(launched).toEqual({ ok: false, reason: 'busy' });
     });
 });

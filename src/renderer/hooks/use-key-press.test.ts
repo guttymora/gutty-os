@@ -67,4 +67,22 @@ describe('useKeyPress', () => {
         expect(removeSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
         removeSpy.mockRestore();
     });
+
+    it('leaves events alone when skip returns true', () => {
+        const handler = vi.fn();
+        renderHook(() =>
+            useKeyPress(KEYS, handler, true, (event) => event.shiftKey)
+        );
+
+        const skipped = fireEvent.keyDown(window, {
+            key: 'Tab',
+            shiftKey: true,
+        });
+        expect(handler).not.toHaveBeenCalled();
+        // Not cancelled, so the page still handles it
+        expect(skipped).toBe(true);
+
+        fireEvent.keyDown(window, { key: 'Tab' });
+        expect(handler).toHaveBeenCalledOnce();
+    });
 });
