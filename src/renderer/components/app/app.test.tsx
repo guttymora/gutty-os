@@ -4,15 +4,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SPLASH_FADE_MS } from '@components/splash-screen/splash-screen';
 import { MOCK_GAMES } from '@data/mock-games';
+import type { Game } from '@shared/game';
 import { useLibraryStore } from '@stores/library-store';
 import { useUiStore } from '@stores/ui-store';
 
 import { App } from './app';
 
 describe('App', () => {
+    let exitGame: (game?: Game) => void;
+
     beforeEach(() => {
         useUiStore.setState({ isOptionsOpen: false });
-        useLibraryStore.setState({ status: 'loading', games: [] });
+        useLibraryStore.setState({
+            status: 'loading',
+            games: [],
+            playingId: undefined,
+        });
         vi.useFakeTimers();
         vi.stubGlobal('bridgeAPI', {
             platform: 'darwin',
@@ -23,6 +30,10 @@ describe('App', () => {
             getLibraryLocation: vi
                 .fn()
                 .mockResolvedValue({ displayPath: '~/gutty-os' }),
+            onGameExited: vi.fn((callback: (game?: Game) => void) => {
+                exitGame = callback;
+                return () => undefined;
+            }),
         });
     });
 
@@ -89,6 +100,37 @@ describe('App', () => {
         expect(
             screen.getByRole('button', { name: /Super Mario Land/ })
         ).toBeInTheDocument();
+    });
+
+    it("doesn't start a game with the Enter that skips the splash", async () => {
+        window.bridgeAPI.launchGame = vi.fn();
+        render(<App />);
+        await act(async () => undefined);
+
+        fireEvent.keyDown(window, { key: 'Enter' });
+        act(() => vi.advanceTimersByTime(SPLASH_FADE_MS));
+
+        expect(window.bridgeAPI.launchGame).not.toHaveBeenCalled();
+    });
+
+    it('ignores Tab while a game runs and shows its new stats after', async () => {
+        render(<App />);
+        await act(async () => undefined);
+        fireEvent.keyDown(window, { key: 'Enter' });
+        act(() => vi.advanceTimersByTime(SPLASH_FADE_MS));
+        const [game] = MOCK_GAMES;
+        act(() => useLibraryStore.setState({ playingId: game.id }));
+
+        fireEvent.keyDown(window, { key: 'Tab' });
+        expect(screen.queryByRole('dialog', { name: 'Options' })).toBeNull();
+
+        act(() => exitGame({ ...game, playTimeMinutes: 999 }));
+
+        expect(screen.queryByRole('status')).toBeNull();
+        expect(useLibraryStore.getState().games).toContainEqual({
+            ...game,
+            playTimeMinutes: 999,
+        });
     });
 
     it('keeps files dropped outside a drop zone from opening', () => {

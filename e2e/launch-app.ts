@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import {
+    chmodSync,
     mkdirSync,
     mkdtempSync,
     rmSync,
@@ -28,10 +29,39 @@ export type LaunchedApp = {
 export const getTestLibraryPath = (userDataDir: string) =>
     path.join(userDataDir, 'library');
 
+/** Stand-in for mGBA.app, inside the throwaway userData folder */
+const getFakeMgbaPath = (userDataDir: string) =>
+    path.join(userDataDir, 'mGBA.app');
+
+/** What the fake mGBA writes when it starts: its env value, then its args */
+export const getFakeMgbaLogPath = (userDataDir: string) =>
+    path.join(userDataDir, 'mgba-launch.txt');
+
+/**
+ * A fake mGBA.app whose binary records how it was started, then quits after
+ * a moment, like a player closing the emulator
+ */
+const createFakeMgba = (userDataDir: string) => {
+    const binary = path.join(
+        getFakeMgbaPath(userDataDir),
+        'Contents/MacOS/mGBA'
+    );
+    mkdirSync(path.dirname(binary), { recursive: true });
+    writeFileSync(
+        binary,
+        [
+            '#!/bin/sh',
+            `printf '%s\\n' "$SDL_JOYSTICK_MFI" "$@" > '${getFakeMgbaLogPath(userDataDir)}'`,
+            'sleep 1',
+        ].join('\n')
+    );
+    chmodSync(binary, 0o755);
+};
+
 /**
  * A throwaway userData folder so tests never touch the real app settings.
- * Its settings.json points the game library inside it, so tests never
- * create ~/gutty-os either.
+ * Its settings.json points the game library and mGBA inside it, so tests
+ * never create ~/gutty-os or start the real emulator.
  */
 export const createUserDataDir = () => {
     const userDataDir = mkdtempSync(path.join(tmpdir(), 'gutty-os-e2e-'));
@@ -40,10 +70,15 @@ export const createUserDataDir = () => {
         JSON.stringify({
             version: 1,
             libraryPath: getTestLibraryPath(userDataDir),
+            mgba: {
+                appPath: getFakeMgbaPath(userDataDir),
+                env: { SDL_JOYSTICK_MFI: '0' },
+            },
         })
     );
 
     seedLibrary(getTestLibraryPath(userDataDir));
+    createFakeMgba(userDataDir);
 
     return userDataDir;
 };

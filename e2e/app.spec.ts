@@ -5,6 +5,7 @@ import { expect, test } from '@playwright/test';
 
 import {
     createUserDataDir,
+    getFakeMgbaLogPath,
     getTestLibraryPath,
     launchApp,
     type LaunchedApp,
@@ -199,6 +200,54 @@ test.describe('library', () => {
 
         await games.getByRole('button', { name: /Wario Land 3/ }).click();
         await expect(details.getByRole('heading')).toHaveText('Wario Land 3');
+    });
+});
+
+test.describe('playing a game', () => {
+    test('starts mGBA with the controller fix and comes back when it quits', async () => {
+        const { app, window } = launched;
+        await skipSplash(window);
+        const libraryPath = getTestLibraryPath(userDataDir);
+
+        // Advance Wars is selected first
+        await window.keyboard.press('a');
+
+        await expect(window.getByRole('status')).toHaveText(
+            /Playing Advance Wars/
+        );
+        await expect
+            .poll(() => existsSync(getFakeMgbaLogPath(userDataDir)))
+            .toBe(true);
+        expect(
+            readFileSync(getFakeMgbaLogPath(userDataDir), 'utf8').split('\n')
+        ).toEqual([
+            '0',
+            '-C',
+            `savegamePath=${path.join(libraryPath, 'saves/gba')}`,
+            '-C',
+            `savestatePath=${path.join(libraryPath, 'states/gba')}`,
+            path.join(libraryPath, 'roms/gba/Advance Wars.gba'),
+            '',
+        ]);
+
+        // The fake mGBA quits after a second
+        await expect(window.getByRole('status')).toHaveCount(0, {
+            timeout: 10_000,
+        });
+        expect(
+            await app.evaluate(({ BrowserWindow }) =>
+                BrowserWindow.getAllWindows()[0].isMinimized()
+            )
+        ).toBe(false);
+        const library = JSON.parse(
+            readFileSync(path.join(libraryPath, 'library.json'), 'utf8')
+        );
+        const advanceWars = Object.values(library.games).find(
+            (game) => (game as { title: string }).title === 'Advance Wars'
+        ) as { lastPlayedAt: string };
+        expect(Date.now() - Date.parse(advanceWars.lastPlayedAt)).toBeLessThan(
+            60_000
+        );
     });
 });
 

@@ -38,6 +38,9 @@ const ipc = vi.hoisted(() => {
         isMaximized: vi.fn(() => false),
         maximize: vi.fn(),
         unmaximize: vi.fn(),
+        restore: vi.fn(),
+        focus: vi.fn(),
+        isDestroyed: () => false,
     };
     // Renderer-side listeners for events the main process sends
     const listeners = new Map<string, Set<Handler>>();
@@ -155,7 +158,14 @@ describe('preload bridge <-> main process', () => {
             }
         ),
         importGame: vi.fn(async () => ADDED),
+        launchGame: vi.fn(
+            async (_id: string, onExit: (game: Game | undefined) => void) => {
+                exitGame = () => onExit(LIBRARY[0]);
+                return { ok: true as const };
+            }
+        ),
     };
+    let exitGame: () => void;
 
     beforeAll(async () => {
         sandbox = await mkdtemp(path.join(tmpdir(), 'gutty-os-test-'));
@@ -166,6 +176,7 @@ describe('preload bridge <-> main process', () => {
             await import('./main/ipc/window-controls');
         const { registerLibraryIpc } = await import('./main/ipc/library');
         const { registerImportIpc } = await import('./main/ipc/import');
+        const { registerGameIpc } = await import('./main/ipc/game');
         const { ImportStaging } = await import('./main/library/import-staging');
         registerWindowControls();
         registerLibraryIpc(() => library as unknown as LibraryManager);
@@ -173,6 +184,7 @@ describe('preload bridge <-> main process', () => {
             staging: new ImportStaging(),
             getLibrary: () => library as unknown as LibraryManager,
         });
+        registerGameIpc(() => library as unknown as LibraryManager);
         await import('./preload');
         bridgeAPI = ipc.exposed.bridgeAPI as BridgeAPI;
     });
@@ -222,6 +234,28 @@ describe('preload bridge <-> main process', () => {
 
         expect(ipc.window.maximize).toHaveBeenCalledOnce();
         expect(ipc.window.setFullScreen).not.toHaveBeenCalled();
+    });
+
+    it('launches a game, steps aside, and comes back when it quits', async () => {
+        const onExited = vi.fn();
+        const stopListening = bridgeAPI.onGameExited(onExited);
+
+        expect(await bridgeAPI.launchGame(LIBRARY[0].id)).toEqual({ ok: true });
+        expect(library.launchGame).toHaveBeenCalledWith(
+            LIBRARY[0].id,
+            expect.any(Function)
+        );
+        expect(ipc.window.minimize).toHaveBeenCalledOnce();
+
+        exitGame();
+
+        expect(ipc.window.restore).toHaveBeenCalledOnce();
+        expect(ipc.window.focus).toHaveBeenCalledOnce();
+        expect(onExited).toHaveBeenCalledWith(LIBRARY[0]);
+
+        stopListening();
+        exitGame();
+        expect(onExited).toHaveBeenCalledOnce();
     });
 
     it('has a main-process handler for every IPC channel', () => {
@@ -386,6 +420,8 @@ describe('preload bridge <-> main process', () => {
             importGame: ['token'],
             moveLibrary: ['token'],
             onLibraryMoveProgress: [() => undefined],
+            launchGame: ['game-id'],
+            onGameExited: [() => undefined],
         };
         const callEveryBridgeFunction = async () => {
             for (const [name, value] of Object.entries(bridgeAPI)) {

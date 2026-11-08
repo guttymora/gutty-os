@@ -10,6 +10,7 @@ import {
 import type { Game, Platform } from '@shared/game';
 import type { ImportFileKind, ImportResult, StageResult } from '@shared/import';
 import { IpcChannels, IpcEvents } from '@shared/ipc-channels';
+import type { LaunchResult } from '@shared/launch';
 import type {
     ChooseFolderResult,
     LibraryLocation,
@@ -41,6 +42,21 @@ const bridgeAPI = {
         ipcRenderer.invoke(IpcChannels.IMPORT_CHOOSE_FILE, kind, platform),
     importGame: (romToken: string, saveToken?: string): Promise<ImportResult> =>
         ipcRenderer.invoke(IpcChannels.IMPORT_GAME, { romToken, saveToken }),
+    launchGame: (id: string): Promise<LaunchResult> =>
+        ipcRenderer.invoke(IpcChannels.GAME_LAUNCH, id),
+    /**
+     * Follows the emulator quitting; returns a function that stops listening.
+     * The game is undefined when its stats couldn't be saved.
+     */
+    onGameExited: (callback: (game: Game | undefined) => void) => {
+        const listener = (_event: IpcRendererEvent, game: Game | undefined) =>
+            callback(game);
+        ipcRenderer.on(IpcEvents.GAME_EXITED, listener);
+
+        return () => {
+            ipcRenderer.removeListener(IpcEvents.GAME_EXITED, listener);
+        };
+    },
     getLibraryLocation: (): Promise<LibraryLocation | undefined> =>
         ipcRenderer.invoke(IpcChannels.LIBRARY_GET_LOCATION),
     chooseLibraryFolder: (): Promise<ChooseFolderResult> =>

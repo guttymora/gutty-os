@@ -21,10 +21,14 @@ export const App = () => {
     const games = useLibraryStore((state) => state.games);
     const libraryStatus = useLibraryStore((state) => state.status);
     const loadGames = useLibraryStore((state) => state.loadGames);
+    const isPlaying = useLibraryStore((state) => state.playingId !== undefined);
+    const endGame = useLibraryStore((state) => state.endGame);
 
     useEffect(() => {
         void loadGames();
     }, [loadGames]);
+
+    useEffect(() => window.bridgeAPI.onGameExited(endGame), [endGame]);
 
     // Files dropped outside a drop zone would make the window open them
     useEffect(() => {
@@ -38,11 +42,12 @@ export const App = () => {
         };
     }, []);
 
-    // Tab opens options once the splash is gone and no dialog is open
+    // Tab opens options once the splash is gone, no dialog is open and no
+    // game is running
     useKeyPress(
         CONTROLS.options.keys,
         openOptions,
-        !showSplash && !isOptionsOpen && !isAddGameOpen
+        !showSplash && !isOptionsOpen && !isAddGameOpen && !isPlaying
     );
 
     return (
@@ -50,7 +55,11 @@ export const App = () => {
             <WindowBar title="GuttyOS • GAMES" trailing={<Clock />} />
             <main className={styles.content}>
                 {showSplash && <SplashScreen onFinish={hideSplash} />}
-                <LibraryScreen games={games} status={libraryStatus} />
+                <LibraryScreen
+                    games={games}
+                    status={libraryStatus}
+                    isActive={!showSplash && !isOptionsOpen}
+                />
                 {isOptionsOpen && <OptionsPanel />}
             </main>
         </div>

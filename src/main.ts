@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 
+import { registerGameIpc } from './main/ipc/game';
 import { registerImportIpc } from './main/ipc/import';
 import { registerLibraryIpc } from './main/ipc/library';
 import { registerWindowControls } from './main/ipc/window-controls';
@@ -21,6 +22,7 @@ app.whenReady().then(async () => {
 
     registerWindowControls();
     registerLibraryIpc(() => library);
+    registerGameIpc(() => library);
     registerImportIpc({
         staging: new ImportStaging(),
         getLibrary: () => library,
