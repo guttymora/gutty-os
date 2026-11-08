@@ -1,4 +1,5 @@
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { VitePlugin } from '@electron-forge/plugin-vite';
@@ -7,9 +8,18 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 const config: ForgeConfig = {
     packagerConfig: {
         asar: true,
+        // Its own id, so macOS doesn't mix it up with other Electron apps
+        appBundleId: 'com.guttymora.guttyos',
+        appCategoryType: 'public.app-category.games',
+        // assets/icon.icns on macOS (the extension is picked per platform)
+        icon: 'assets/icon',
     },
     rebuildConfig: {},
-    makers: [new MakerZIP({}, ['darwin'])],
+    makers: [
+        new MakerZIP({}, ['darwin']),
+        // Drag-to-Applications installer
+        new MakerDMG({ icon: 'assets/icon.icns', format: 'ULFO' }, ['darwin']),
+    ],
     plugins: [
         new VitePlugin({
             // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
