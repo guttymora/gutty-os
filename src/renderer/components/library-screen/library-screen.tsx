@@ -5,6 +5,7 @@ import { ButtonHints } from '@components/button-hints/button-hints';
 import { GameDetails } from '@components/game-details/game-details';
 import { GameList } from '@components/game-list/game-list';
 import { PlatformSidebar } from '@components/platform-sidebar/platform-sidebar';
+import { SearchDialog } from '@components/search-dialog/search-dialog';
 import { CONTROLS } from '@data/controls';
 import type { PlatformFilter } from '@data/platforms';
 import { useKeyPress } from '@hooks/use-key-press';
@@ -49,6 +50,8 @@ export const LibraryScreen = ({
     const openOptions = useUiStore((state) => state.openOptions);
     const isAddGameOpen = useUiStore((state) => state.isAddGameOpen);
     const openAddGame = useUiStore((state) => state.openAddGame);
+    const isSearchOpen = useUiStore((state) => state.isSearchOpen);
+    const openSearch = useUiStore((state) => state.openSearch);
     const playingId = useLibraryStore((state) => state.playingId);
     const launchGame = useLibraryStore((state) => state.launchGame);
     const [launchError, setLaunchError] = useState<string>();
@@ -74,21 +77,26 @@ export const LibraryScreen = ({
         }
     };
 
-    // A plays the selected game; nothing reacts while a game is running
-    useKeyPress(
-        CONTROLS.a.keys,
-        () => void play(),
-        isActive && !isAddGameOpen && !playingId && selectedGame !== undefined,
-        isEnterOnOtherControl
-    );
+    // Library shortcuts are off while a dialog covers it or a game runs
+    const acceptsInput =
+        isActive && !isAddGameOpen && !isSearchOpen && !playingId;
+
+    // A plays the selected game
+    useKeyPress(CONTROLS.a.keys, () => void play(), {
+        enabled: acceptsInput && selectedGame !== undefined,
+        skip: isEnterOnOtherControl,
+    });
+
+    // X searches every platform
+    useKeyPress(CONTROLS.x.keys, openSearch, { enabled: acceptsInput });
 
     const select = (id: string) => {
         setLaunchError(undefined);
         setSelectedId(id);
     };
 
-    // Show the new game, switching to "All Games" if it's filtered out
-    const showAddedGame = (game: Game) => {
+    // Show a game, switching to "All Games" if it's filtered out
+    const showGame = (game: Game) => {
         if (platform !== 'all' && platform !== game.platform) {
             setPlatform('all');
         }
@@ -119,6 +127,7 @@ export const LibraryScreen = ({
                 <ButtonHints
                     onPress={{
                         a: selectedGame ? () => void play() : undefined,
+                        x: openSearch,
                         options: openOptions,
                     }}
                 />
@@ -134,9 +143,10 @@ export const LibraryScreen = ({
             {isAddGameOpen && (
                 <AddGameDialog
                     platform={platform === 'all' ? undefined : platform}
-                    onAdded={showAddedGame}
+                    onAdded={showGame}
                 />
             )}
+            {isSearchOpen && <SearchDialog games={games} onOpen={showGame} />}
         </div>
     );
 };

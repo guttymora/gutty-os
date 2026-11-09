@@ -18,6 +18,7 @@ export const App = () => {
     const isOptionsOpen = useUiStore((state) => state.isOptionsOpen);
     const openOptions = useUiStore((state) => state.openOptions);
     const isAddGameOpen = useUiStore((state) => state.isAddGameOpen);
+    const isSearchOpen = useUiStore((state) => state.isSearchOpen);
     const games = useLibraryStore((state) => state.games);
     const libraryStatus = useLibraryStore((state) => state.status);
     const loadGames = useLibraryStore((state) => state.loadGames);
@@ -44,11 +45,14 @@ export const App = () => {
 
     // Tab opens options once the splash is gone, no dialog is open and no
     // game is running
-    useKeyPress(
-        CONTROLS.options.keys,
-        openOptions,
-        !showSplash && !isOptionsOpen && !isAddGameOpen && !isPlaying
-    );
+    useKeyPress(CONTROLS.options.keys, openOptions, {
+        enabled:
+            !showSplash &&
+            !isOptionsOpen &&
+            !isAddGameOpen &&
+            !isSearchOpen &&
+            !isPlaying,
+    });
 
     return (
         <div className={styles.app}>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Game } from '@shared/game';
 
-import { filterGames, formatPlayTime } from './games';
+import { filterGames, formatPlayTime, searchGames } from './games';
 
 const game = (title: string, platform: Game['platform']): Game => ({
     id: title,
@@ -49,5 +49,40 @@ describe('formatPlayTime', () => {
         [252, '4h 12m'],
     ])('formats %i minutes as "%s"', (minutes, expected) => {
         expect(formatPlayTime(minutes)).toBe(expected);
+    });
+});
+
+describe('searchGames', () => {
+    const games = [
+        game('Pokémon Red', 'gb'),
+        game("The Legend of Zelda: Link's Awakening", 'gb'),
+        game('The Legend of Zelda: The Minish Cap', 'gba'),
+        game('Golden Sun', 'gba'),
+    ];
+    const titles = (query: string) =>
+        searchGames(games, query).map((g) => g.title);
+
+    it('matches across platforms, sorted by title', () => {
+        expect(titles('zelda')).toEqual([
+            "The Legend of Zelda: Link's Awakening",
+            'The Legend of Zelda: The Minish Cap',
+        ]);
+    });
+
+    it('ignores case and accents', () => {
+        expect(titles('POKEMON')).toEqual(['Pokémon Red']);
+        expect(titles('pokémon')).toEqual(['Pokémon Red']);
+    });
+
+    it('needs every word, in any order', () => {
+        expect(titles('minish zelda')).toEqual([
+            'The Legend of Zelda: The Minish Cap',
+        ]);
+        expect(titles('zelda sun')).toEqual([]);
+    });
+
+    it('matches nothing for a blank query', () => {
+        expect(titles('')).toEqual([]);
+        expect(titles('   ')).toEqual([]);
     });
 });
