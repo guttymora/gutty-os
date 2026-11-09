@@ -201,6 +201,28 @@ test.describe('library', () => {
         await games.getByRole('button', { name: /Wario Land 3/ }).click();
         await expect(details.getByRole('heading')).toHaveText('Wario Land 3');
     });
+
+    test('searches every platform without typing into shortcuts', async () => {
+        const { window } = launched;
+        await skipSplash(window);
+        const details = window.getByRole('region', { name: 'Game details' });
+
+        await window.keyboard.press('x');
+        // "a" and Tab would play a game or open options outside the box
+        await window.keyboard.type('a');
+        await window.keyboard.press('Backspace');
+        await window.keyboard.type('minish');
+        await expect(window.getByRole('searchbox')).toHaveValue('minish');
+        await window.keyboard.press('Enter');
+
+        await expect(
+            window.getByRole('dialog', { name: 'Search' })
+        ).toHaveCount(0);
+        await expect(details.getByRole('heading')).toHaveText(
+            'The Legend of Zelda: The Minish Cap'
+        );
+        await expect(window.getByRole('status')).toHaveCount(0);
+    });
 });
 
 test.describe('playing a game', () => {

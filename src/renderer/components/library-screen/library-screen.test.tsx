@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -188,7 +188,7 @@ describe('LibraryScreen', () => {
 
         beforeEach(() => {
             useLibraryStore.setState({ playingId: undefined });
-            useUiStore.setState({ isAddGameOpen: false });
+            useUiStore.setState({ isAddGameOpen: false, isSearchOpen: false });
             launchGame = vi.fn().mockResolvedValue({ ok: true });
             vi.stubGlobal('bridgeAPI', { launchGame });
         });
@@ -261,6 +261,16 @@ describe('LibraryScreen', () => {
             expect(launchGame).not.toHaveBeenCalled();
         });
 
+        it("doesn't play letters typed into the search box", async () => {
+            render(<LibraryScreen games={MOCK_GAMES} />);
+
+            fireEvent.keyDown(window, { key: 'x' });
+            await userEvent.type(screen.getByRole('searchbox'), 'mario');
+
+            expect(launchGame).not.toHaveBeenCalled();
+            expect(screen.getByRole('searchbox')).toHaveValue('mario');
+        });
+
         it('ignores A while the library is covered', () => {
             render(<LibraryScreen games={MOCK_GAMES} isActive={false} />);
 
@@ -295,6 +305,56 @@ describe('LibraryScreen', () => {
                 screen.getByRole('button', { name: /Tetris/ })
             );
             expect(screen.queryByRole('alert')).toBeNull();
+        });
+    });
+
+    describe('search', () => {
+        beforeEach(() => {
+            useUiStore.setState({ isSearchOpen: false, isAddGameOpen: false });
+        });
+
+        it('opens with X and from the X hint', async () => {
+            render(<LibraryScreen games={MOCK_GAMES} />);
+
+            fireEvent.keyDown(window, { key: 'x' });
+            expect(
+                screen.getByRole('dialog', { name: 'Search' })
+            ).toBeVisible();
+
+            act(() => useUiStore.setState({ isSearchOpen: false }));
+            await userEvent.click(
+                screen.getByRole('button', { name: 'XSearch' })
+            );
+            expect(
+                screen.getByRole('dialog', { name: 'Search' })
+            ).toBeVisible();
+        });
+
+        it('ignores X while the library is covered', () => {
+            render(<LibraryScreen games={MOCK_GAMES} isActive={false} />);
+
+            fireEvent.keyDown(window, { key: 'x' });
+
+            expect(screen.queryByRole('dialog')).toBeNull();
+        });
+
+        it('shows the chosen game, switching to all games', async () => {
+            render(<LibraryScreen games={MOCK_GAMES} />);
+            await userEvent.click(
+                screen.getByRole('button', { name: 'GB Color' })
+            );
+
+            fireEvent.keyDown(window, { key: 'x' });
+            await userEvent.type(
+                screen.getByRole('searchbox'),
+                'minish{Enter}'
+            );
+
+            expect(screen.queryByRole('dialog')).toBeNull();
+            expect(getListedTitles()).toHaveLength(MOCK_GAMES.length);
+            expect(getDetailsTitle()).toBe(
+                'The Legend of Zelda: The Minish Cap'
+            );
         });
     });
 });

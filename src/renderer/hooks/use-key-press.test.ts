@@ -43,7 +43,7 @@ describe('useKeyPress', () => {
     it('only listens while enabled', () => {
         const handler = vi.fn();
         const { rerender } = renderHook(
-            ({ enabled }) => useKeyPress(KEYS, handler, enabled),
+            ({ enabled }) => useKeyPress(KEYS, handler, { enabled }),
             { initialProps: { enabled: false } }
         );
 
@@ -71,7 +71,7 @@ describe('useKeyPress', () => {
     it('leaves events alone when skip returns true', () => {
         const handler = vi.fn();
         renderHook(() =>
-            useKeyPress(KEYS, handler, true, (event) => event.shiftKey)
+            useKeyPress(KEYS, handler, { skip: (event) => event.shiftKey })
         );
 
         const skipped = fireEvent.keyDown(window, {
@@ -84,5 +84,71 @@ describe('useKeyPress', () => {
 
         fireEvent.keyDown(window, { key: 'Tab' });
         expect(handler).toHaveBeenCalledOnce();
+    });
+
+    describe('while typing', () => {
+        const typeInto = (element: HTMLElement, key: string) => {
+            document.body.append(element);
+            element.focus();
+            const notCancelled = fireEvent.keyDown(element, { key });
+            element.remove();
+            return notCancelled;
+        };
+
+        it.each([
+            ['a text input', () => document.createElement('input')],
+            ['a textarea', () => document.createElement('textarea')],
+            [
+                'editable content',
+                () => {
+                    const div = document.createElement('div');
+                    Object.defineProperty(div, 'isContentEditable', {
+                        value: true,
+                    });
+                    return div;
+                },
+            ],
+        ])('leaves keys typed into %s alone', (_, create) => {
+            const handler = vi.fn();
+            renderHook(() => useKeyPress(KEYS, handler));
+
+            expect(typeInto(create(), 'a')).toBe(true);
+            // Tab keeps moving focus out of the field
+            expect(typeInto(create(), 'Tab')).toBe(true);
+            expect(handler).not.toHaveBeenCalled();
+        });
+
+        it('still handles keys on non-text inputs', () => {
+            const handler = vi.fn();
+            renderHook(() => useKeyPress(KEYS, handler));
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+
+            typeInto(checkbox, 'a');
+
+            expect(handler).toHaveBeenCalledOnce();
+        });
+
+        it('handles keys typed into fields with allowWhileTyping', () => {
+            const handler = vi.fn();
+            renderHook(() =>
+                useKeyPress(['Escape'], handler, { allowWhileTyping: true })
+            );
+
+            typeInto(document.createElement('input'), 'Escape');
+
+            expect(handler).toHaveBeenCalledOnce();
+        });
+
+        it('ignores keys while composing an accent or IME character', () => {
+            const handler = vi.fn();
+            renderHook(() =>
+                useKeyPress(['Escape'], handler, { allowWhileTyping: true })
+            );
+
+            fireEvent.keyDown(window, { key: 'Escape', isComposing: true });
+
+            expect(handler).not.toHaveBeenCalled();
+        });
     });
 });

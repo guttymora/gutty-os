@@ -7,6 +7,9 @@ type UiState = {
     isAddGameOpen: boolean;
     openAddGame: () => void;
     closeAddGame: () => void;
+    isSearchOpen: boolean;
+    openSearch: () => void;
+    closeSearch: () => void;
 };
 
 export const useUiStore = create<UiState>()((set) => ({
@@ -16,4 +19,7 @@ export const useUiStore = create<UiState>()((set) => ({
     isAddGameOpen: false,
     openAddGame: () => set({ isAddGameOpen: true }),
     closeAddGame: () => set({ isAddGameOpen: false }),
+    isSearchOpen: false,
+    openSearch: () => set({ isSearchOpen: true }),
+    closeSearch: () => set({ isSearchOpen: false }),
 }));
